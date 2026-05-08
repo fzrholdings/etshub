@@ -1037,6 +1037,14 @@ function renderConvoyCards(convoys) {
         ${convoy.tags && convoy.tags.length > 0 ? `<span>🏷️ ${convoy.tags.join(', ')}</span>` : ''}
         <span>👥 ${slotsText} trucks</span>
         ${convoy.type ? `<span>🔒 ${convoy.type.toUpperCase()}</span>` : ''}
+        <button onclick="toggleConvoyChat('${convoyId}')" style="background: none; border: 1px solid #333; color: #ccc; padding: 4px 10px; border-radius: 6px; font-size: 12px; margin-left: 8px;">💬 Chat</button>
+<div class="convoy-chat" id="chat-${convoyId}" style="display:none;">
+  <div class="chat-messages" id="chatMessages-${convoyId}"></div>
+  <div style="display:flex; gap:4px;">
+    <input type="text" id="chatInput-${convoyId}" placeholder="Type..." style="flex:1;">
+    <button onclick="sendChatMessage('${convoyId}')" class="cm-send-btn">Send</button>
+  </div>
+</div>
       </div>
       ${convoy.description ? `<div class="convoy-desc">${escapeHtml(convoy.description)}</div>` : ''}
       ${convoy.routeImage ? `<img src="${escapeHtml(convoy.routeImage)}" class="convoy-route-img" alt="Route Map" onclick="window.open(this.src)">` : ''}
