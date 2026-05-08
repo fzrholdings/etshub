@@ -295,8 +295,12 @@ function loadPosts() {
     ${totalReactions > 0 ? `<span class="reaction-count">${totalReactions}</span>` : ''}
   </button>
   <div class="reaction-picker">
-    ${reactionTypes.map(t => `<button class="reaction-option" onclick="event.stopPropagation(); reactPost('${postId}','${t}')">${emojiMap[t]}</button>`).join('')}
-  </div>
+  ${reactionTypes.map(t => {
+    const count = post.reactions?.[t] || 0;
+    return `<button class="reaction-option" onclick="event.stopPropagation(); reactPost('${postId}','${t}')" title="${t.charAt(0).toUpperCase()+t.slice(1)}">
+      ${emojiMap[t]}${count > 0 ? `<small>${count}</small>` : ''}
+    </button>`;
+  }).join('')}
 </div>
         <button class="comment-toggle-btn" onclick="toggleCommentBox('${postId}')">💬 Comment</button>
         <div class="comments" id="comments-${postId}" style="display:none;">
@@ -415,8 +419,13 @@ function renderCommentNode(postId, node, depth, container) {
     ${totalReactions > 0 ? `<span class="reaction-count">${totalReactions}</span>` : ''}
   </button>
   <div class="cm-reaction-picker">
-    ${reactionTypes.map(t => `<button class="reaction-option" onclick="event.stopPropagation(); reactComment('${postId}','${commentId}','${t}')">${emojiMap[t]}</button>`).join('')}
-  </div>
+  ${reactionTypes.map(t => {
+    const count = node.reactions?.[t] || 0;
+    return `<button class="reaction-option" onclick="event.stopPropagation(); reactComment('${postId}','${commentId}','${t}')" title="${t.charAt(0).toUpperCase()+t.slice(1)}">
+      ${emojiMap[t]}${count > 0 ? `<small>${count}</small>` : ''}
+    </button>`;
+  }).join('')}
+</div>
 </div>
       </div>
       <button class="reply-toggle" onclick="toggleReplyBox('${postId}','${commentId}')">Reply</button>
