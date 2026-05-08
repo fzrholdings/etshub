@@ -1408,6 +1408,30 @@ async function reportComment(postId, commentId) {
   // Optional: Add report subcollection similar to posts.
 }
 
+// ========== Online Presence ==========
+const presenceRef = db.collection("presence");
+
+function updatePresence() {
+  const anonId = getAnonymousId();
+  presenceRef.doc(anonId).set({
+    lastActive: firebase.firestore.FieldValue.serverTimestamp()
+  }, { merge: true }).catch(() => {});
+}
+
+setInterval(updatePresence, 120000); // every 2 minutes
+updatePresence(); // initial call
+
+function listenOnlineCount() {
+  const now = Date.now();
+  presenceRef.where("lastActive", ">", new Date(now - 120000)) // last 2 min
+    .onSnapshot(snap => {
+      const count = snap.size;
+      const el = document.getElementById('onlineCount');
+      if (el) el.textContent = count;
+    });
+}
+listenOnlineCount();
+
 // Init
 loadPosts();
 checkAdminPanel();
