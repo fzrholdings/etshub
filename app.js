@@ -890,23 +890,32 @@ async function renderLinkPreviews(postDiv, postId) {
   }
 }
 
-// ----- Check URL for NSFW -----
 async function checkUrlNSFW(urlStr) {
-  const formData = new FormData();
-  formData.append('url', urlStr);
+  // 1. First check blocklist (fast, no quota)
   try {
-    const res = await fetch('/api/nsfw-check', { method:'POST', body:formData });
+    const blockForm = new FormData();
+    blockForm.append('url', urlStr);
+    const blockRes = await fetch('/api/blocklist-check', { method:'POST', body: blockForm });
+    const blockData = await blockRes.json();
+    if (blockData.blocked) return true; // blocked by list
+  } catch (e) {
+    console.warn('Blocklist check failed, proceeding to Sightengine', e);
+  }
+
+  // 2. Sightengine scan if blocklist pass
+  const sightForm = new FormData();
+  sightForm.append('url', urlStr);
+  try {
+    const res = await fetch('/api/nsfw-check', { method:'POST', body: sightForm });
     const result = await res.json();
     if (result.status === 'success' && result.nudity) {
       const { sexual_activity, sexual_display, erotica } = result.nudity;
-      if (sexual_activity > 0.3 || sexual_display > 0.3 || erotica > 0.3) {
-        return true; // NSFW
-      }
+      if (sexual_activity > 0.3 || sexual_display > 0.3 || erotica > 0.3) return true;
     }
     return false;
   } catch (e) {
-    console.warn('URL NSFW check failed:', e);
-    return false; // Fail open (allow)
+    console.warn('Sightengine URL check failed', e);
+    return false; // fail open
   }
 }
 
