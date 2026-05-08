@@ -98,6 +98,20 @@ async function createPost() {
     }
   }
 
+    // 🗜️ Compress images before upload
+  if (selectedFiles.length > 0) {
+    try {
+      for (let i = 0; i < selectedFiles.length; i++) {
+        selectedFiles[i] = await compressImage(selectedFiles[i]);
+      }
+      // Update previews with compressed thumbnails
+      renderPreviews();
+    } catch (e) {
+      console.warn('Image compression failed, using originals:', e);
+      // fallback to original files (already in selectedFiles)
+    }
+  }
+
   // Upload images
   let imageUrls = [];
   if (selectedFiles.length > 0) {
@@ -680,6 +694,41 @@ function timeAgo(timestamp) {
   if (days < 7) return days + 'd ago';
   return date.toLocaleDateString(); // fallback
 }
+
+// ----- Image Compression -----
+function compressImage(file, maxWidth = 1200, maxHeight = 1200, quality = 0.8) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      let { width, height } = img;
+      if (width > maxWidth || height > maxHeight) {
+        if (width > height) {
+          height = Math.round((height * maxWidth) / width);
+          width = maxWidth;
+        } else {
+          width = Math.round((width * maxHeight) / height);
+          height = maxHeight;
+        }
+      }
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0, width, height);
+      canvas.toBlob((blob) => {
+        if (blob) {
+          const compressedFile = new File([blob], file.name, { type: 'image/jpeg' });
+          resolve(compressedFile);
+        } else {
+          reject(new Error('Canvas toBlob failed'));
+        }
+      }, 'image/jpeg', quality);
+    };
+    img.onerror = () => reject(new Error('Image load error'));
+    img.src = URL.createObjectURL(file);
+  });
+}
+
 
 // Init
 loadPosts();
