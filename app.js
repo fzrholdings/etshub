@@ -160,6 +160,7 @@ ${(!post.imageUrls || post.imageUrls.length === 0) && post.imageUrl ? `
           </div>
         </div>
       `;
+      div.dataset.searchText = (post.content + ' ' + post.nickname).toLowerCase();
       container.appendChild(div);
       loadComments(postId);
     }); // End of forEach
@@ -607,6 +608,16 @@ function showLightboxImage() {
     const counter = document.getElementById('lightboxCounter');
     img.src = lightboxImages[currentLightboxIndex];
     counter.textContent = (currentLightboxIndex + 1) + ' / ' + lightboxImages.length;
+}
+
+// ----- Search Filter -----
+function filterPosts() {
+    const term = document.getElementById('searchInput').value.trim().toLowerCase();
+    const posts = document.querySelectorAll('.post');
+    posts.forEach(post => {
+        const text = post.dataset.searchText || '';
+        post.style.display = (term === '' || text.includes(term)) ? '' : 'none';
+    });
 }
 
 loadPosts();
