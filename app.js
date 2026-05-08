@@ -905,5 +905,19 @@ async function checkUrlNSFW(urlStr) {
   }
 }
 
+function switchTab(tabName) {
+  // Toggle active class on buttons
+  document.querySelectorAll('.tab-btn').forEach(b => {
+    b.classList.remove('active');
+    if (b.textContent.includes(tabName === 'wall' ? 'Wall' : 'Convoys')) {
+      b.classList.add('active');
+    }
+  });
+  // Show/hide containers
+  document.getElementById('wallContainer').style.display = tabName === 'wall' ? 'block' : 'none';
+  document.getElementById('convoysContainer').style.display = tabName === 'convoys' ? 'block' : 'none';
+  if (tabName === 'convoys') loadConvoys();
+}
+
 // Init
 loadPosts();
