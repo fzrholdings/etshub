@@ -1205,3 +1205,15 @@ function handleRecurring() {
 
 // Init
 loadPosts();
+// Developer only: access convoy tab via ?tab=convoys
+(function() {
+  const params = new URLSearchParams(window.location.search);
+  if (params.get('tab') === 'convoys') {
+    // Hide wall, show convoys and set active tab styling
+    document.getElementById('wallContainer').style.display = 'none';
+    const convoyContainer = document.getElementById('convoysContainer');
+    if (convoyContainer) convoyContainer.style.display = 'block';
+    // Also set the active tab button style if the button was present (but we removed it)
+    loadConvoys();
+  }
+})();
