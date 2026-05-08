@@ -900,3 +900,27 @@ body {
 .save-comment-edit-btn:hover {
   background: #e0e0e0;
 }
+
+/* Active reaction button (user reacted) */
+.like-btn.reacted {
+  background: #1a3a5c;
+  border-color: #58a6ff;
+  color: #58a6ff;
+}
+.like-btn.reacted:hover {
+  background: #1a3a5c;
+}
+.reaction-count {
+  font-size: 13px;
+  margin-left: 2px;
+}
+
+/* Comment reaction active */
+.cm-like-btn.reacted {
+  background: #1a3a5c;
+  border-color: #58a6ff;
+  color: #58a6ff;
+}
+.cm-like-btn.reacted:hover {
+  background: #1a3a5c;
+}
