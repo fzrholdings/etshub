@@ -42,6 +42,11 @@ async function uploadImage(file) {
 
 // ---- Post Functions ----
 async function createPost() {
+    // Spam prevention: 30s cooldown
+  if (isCooldownActive()) {
+    showToast('Please wait 30 seconds between posts');
+    return;
+  }
   const nickname = getAnonymousName();
   const content = document.getElementById('postContent').value.trim();
   
@@ -75,6 +80,7 @@ async function createPost() {
       timestamp: firebase.firestore.FieldValue.serverTimestamp(),
       reactions: { like:0, love:0, haha:0, wow:0, sad:0, angry:0 }
     });
+        startCooldown(30000);
     // Reset form
     document.getElementById('postContent').value = '';
     selectedFiles.length = 0; // clear array
@@ -84,6 +90,49 @@ async function createPost() {
     showToast('Posting failed');
   }
 }
+
+// ---------- Post Cooldown (30s) ----------
+function getCooldownExpireTime() {
+  return parseInt(localStorage.getItem('postCooldown') || '0', 10);
+}
+
+function isCooldownActive() {
+  return Date.now() < getCooldownExpireTime();
+}
+
+function startCooldown(durationMs) {
+  const expireTime = Date.now() + durationMs;
+  localStorage.setItem('postCooldown', expireTime);
+  runCooldownTimer(expireTime);
+}
+
+function runCooldownTimer(expireTime) {
+  const btn = document.getElementById('postButton');
+  if (!btn) return;
+
+  btn.disabled = true;
+  const update = () => {
+    const remaining = Math.max(0, expireTime - Date.now());
+    if (remaining <= 0) {
+      btn.disabled = false;
+      btn.textContent = 'Post කරන්න';
+      localStorage.removeItem('postCooldown');
+      return;
+    }
+    const secs = Math.ceil(remaining / 1000);
+    btn.textContent = `Wait ${secs}s...`;
+    setTimeout(update, 1000);
+  };
+  update();
+}
+
+// Check on page load if cooldown still active
+(function() {
+  const expire = getCooldownExpireTime();
+  if (Date.now() < expire) {
+    runCooldownTimer(expire);
+  }
+})();
 
 function loadPosts() {
   db.collection("posts").orderBy("timestamp","desc").onSnapshot(snapshot => {
