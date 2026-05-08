@@ -201,7 +201,7 @@ function loadPosts() {
         <div class="post-header">
           <div class="post-header-info">
             <strong>${escapeHtml(post.nickname)}</strong>
-            <small>${post.timestamp?.toDate().toLocaleString()||'Just now'}</small>
+            <small>${timeAgo(post.timestamp)}</small>
           </div>
           <div class="post-actions">
             <button onclick="togglePostMenu('${postId}')" class="menu-btn">⋮</button>
@@ -661,6 +661,24 @@ async function checkImageNSFW(file) {
     }
     return false;
   } catch(e) { console.error('NSFW check fail:', e); return false; }
+}
+
+// ---- Relative Time Helper ----
+function timeAgo(timestamp) {
+  if (!timestamp) return 'Just now';
+  const now = new Date();
+  const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
+  const seconds = Math.floor((now - date) / 1000);
+  
+  if (seconds < 10) return 'Just now';
+  if (seconds < 60) return seconds + 's ago';
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 60) return minutes + 'm ago';
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return hours + 'h ago';
+  const days = Math.floor(hours / 24);
+  if (days < 7) return days + 'd ago';
+  return date.toLocaleDateString(); // fallback
 }
 
 // Init
