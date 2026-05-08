@@ -16,6 +16,15 @@ auth.signInAnonymously().catch(console.error);
 
 const IMGBB_API_KEY = "2e6555f84f2cba4982c98e35ff987554";
 
+function filterBadWords(text) {
+  let filtered = text;
+  badWords.forEach(word => {
+    const regex = new RegExp(`\\b${word}\\b`, 'gi'); // word boundary, case‑insensitive
+    filtered = filtered.replace(regex, '***');
+  });
+  return filtered;
+}
+
 // ----- Bad Word Filter -----
 const badWords = [
   // English common bad words
