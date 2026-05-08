@@ -191,7 +191,7 @@ function runCooldownTimer(expireTime) {
 
 function loadPosts() {
   let initialLoadDone = false;
-  
+
   db.collection("posts").orderBy("timestamp","desc").onSnapshot(snapshot => {
     const container = document.getElementById('postsContainer');
     container.innerHTML = '';
@@ -204,19 +204,23 @@ function loadPosts() {
         }
       });
     }
+
     snapshot.forEach(doc => {
       const post = doc.data();
       const postId = doc.id;
-      let userReactions = JSON.parse(localStorage.getItem('postReactions')||'{}');
-      const userReactType = userReactions[postId]||null;
-      const reactionTypes = ['like','love','haha','wow','sad','angry'];
-      const totalReactions = reactionTypes.reduce((s,t)=>s+(post.reactions?.[t]||0),0);
-      let top = 'like', topCount=0;
-      reactionTypes.forEach(t=>{ const c=post.reactions?.[t]||0; if(c>topCount){topCount=c;top=t;} });
-      const emojiMap = {like:'👍',love:'❤️',haha:'😆',wow:'😮',sad:'😢',angry:'😠'};
-      const btnEmoji = userReactType ? emojiMap[userReactType] : (totalReactions>0?emojiMap[top]:'👍');
-      const btnText = userReactType ? userReactType.charAt(0).toUpperCase()+userReactType.slice(1) : (totalReactions>0?top.charAt(0).toUpperCase()+top.slice(1):'Like');
-      const countStr = totalReactions>0?' · '+totalReactions:'';
+      let userReactions = JSON.parse(localStorage.getItem('postReactions') || '{}');
+      const userReactType = userReactions[postId] || null;
+      const reactionTypes = ['like', 'love', 'haha', 'wow', 'sad', 'angry'];
+      const totalReactions = reactionTypes.reduce((s, t) => s + (post.reactions?.[t] || 0), 0);
+      let top = 'like', topCount = 0;
+      reactionTypes.forEach(t => {
+        const c = post.reactions?.[t] || 0;
+        if (c > topCount) { topCount = c; top = t; }
+      });
+      const emojiMap = { like: '👍', love: '❤️', haha: '😆', wow: '😮', sad: '😢', angry: '😠' };
+      const btnEmoji = userReactType ? emojiMap[userReactType] : (totalReactions > 0 ? emojiMap[top] : '👍');
+      const btnText = userReactType ? userReactType.charAt(0).toUpperCase() + userReactType.slice(1) : (totalReactions > 0 ? top.charAt(0).toUpperCase() + top.slice(1) : 'Like');
+      const countStr = totalReactions > 0 ? ' · ' + totalReactions : '';
 
       const div = document.createElement('div');
       div.className = 'post';
@@ -261,7 +265,7 @@ function loadPosts() {
         <div class="reaction-wrapper">
           <button class="like-btn">${btnEmoji} <span>${btnText}</span>${countStr}</button>
           <div class="reaction-picker">
-            ${reactionTypes.map(t=>`<button class="reaction-option" onclick="event.stopPropagation(); reactPost('${postId}','${t}')">${emojiMap[t]}</button>`).join('')}
+            ${reactionTypes.map(t => `<button class="reaction-option" onclick="event.stopPropagation(); reactPost('${postId}','${t}')">${emojiMap[t]}</button>`).join('')}
           </div>
         </div>
         <button class="comment-toggle-btn" onclick="toggleCommentBox('${postId}')">💬 Comment</button>
@@ -278,6 +282,7 @@ function loadPosts() {
       loadComments(postId);
     });
 
+    // Deep link highlight & scroll
     const hash = window.location.hash;
     if (hash && hash.startsWith('#post-')) {
       const targetId = hash.replace('#post-', '');
@@ -290,6 +295,9 @@ function loadPosts() {
         }
       }, 300);
     }
+
+    // Mark initial load done (so future snapshots trigger sound)
+    initialLoadDone = true;
   });
 }
 
