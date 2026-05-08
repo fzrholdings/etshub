@@ -460,3 +460,22 @@ body {
     margin-top: 15px;
     font-size: 14px;
 }
+
+/* ===== Search Bar ===== */
+.search-container {
+    margin-bottom: 16px;
+}
+.search-container input {
+    width: 100%;
+    padding: 12px 20px;
+    background: #0a0a0a;
+    border: 1px solid #2a2a2a;
+    border-radius: 25px;
+    color: #fff;
+    font-size: 15px;
+    outline: none;
+    transition: border-color 0.3s;
+}
+.search-container input:focus {
+    border-color: #fff;
+}
