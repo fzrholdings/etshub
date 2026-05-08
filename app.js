@@ -93,6 +93,18 @@ async function createPost() {
   btn.disabled = true;
   btn.textContent = 'Posting...';
 
+    // 🔗 Scan URLs in text for NSFW
+  const urlsInText = extractUrls(content);
+  for (let urlStr of urlsInText) {
+    const isNsfwUrl = await checkUrlNSFW(urlStr);
+    if (isNsfwUrl) {
+      showToast('🔞 NSFW link detected! Post rejected.');
+      btn.disabled = false;
+      btn.textContent = 'Post කරන්න';
+      return;
+    }
+  }
+
   // 🔞 NSFW Check (Sightengine)
   if (selectedFiles.length > 0) {
     for (let file of selectedFiles) {
@@ -404,6 +416,14 @@ function renderCommentNode(postId, node, depth, container) {
 function addComment(postId) {
   const input = document.getElementById('commentInput-'+postId);
   const text = input.value.trim();
+    const urlsInComment = extractUrls(text);
+  for (let urlStr of urlsInComment) {
+    const isNsfw = await checkUrlNSFW(urlStr);
+    if (isNsfw) {
+      showToast('🔞 NSFW link detected! Comment rejected.');
+      return;
+    }
+  }
   if(!text) return;
   const nickname = getAnonymousName();
   db.collection("posts").doc(postId).collection("comments").add({
@@ -417,6 +437,14 @@ function addComment(postId) {
 function addReply(postId, parentCommentId) {
   const input = document.getElementById(`replyInput-${postId}-${parentCommentId}`);
   const text = input.value.trim();
+    const urlsInReply = extractUrls(text);
+  for (let urlStr of urlsInReply) {
+    const isNsfw = await checkUrlNSFW(urlStr);
+    if (isNsfw) {
+      showToast('🔞 NSFW link detected! Reply rejected.');
+      return;
+    }
+  }
   if(!text) return;
   const nickname = getAnonymousName();
   db.collection("posts").doc(postId).collection("comments").add({
