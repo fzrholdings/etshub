@@ -40,12 +40,12 @@ async function uploadImage(file) {
   return data.data.url;
 }
 
-// ---- Post functions ----
+// ---- Post Functions ----
 async function createPost() {
   const nickname = getAnonymousName();
   const content = document.getElementById('postContent').value.trim();
   const fileInput = document.getElementById('imageInput');
-  if (!content && !fileInput.files[0]) return alert('Text හෝ image දාන්න!');
+  if (!content && !fileInput.files[0]) return alert('Text හෝ image එකක් දාන්න!');
   let imageUrl = null;
   if (fileInput.files[0]) {
     try { imageUrl = await uploadImage(fileInput.files[0]); } catch { alert('Upload fail'); return; }
@@ -68,7 +68,6 @@ function loadPosts() {
     snapshot.forEach(doc => {
       const post = doc.data();
       const postId = doc.id;
-      // Reaction state
       let userReactions = JSON.parse(localStorage.getItem('postReactions')||'{}');
       const userReactType = userReactions[postId]||null;
       const reactionTypes = ['like','love','haha','wow','sad','angry'];
@@ -92,12 +91,12 @@ function loadPosts() {
             ${reactionTypes.map(t=>`<button class="reaction-option" onclick="event.stopPropagation(); reactPost('${postId}','${t}')">${emojiMap[t]}</button>`).join('')}
           </div>
         </div>
-        <button class="cm-send-btn" onclick="addComment('${postId}')">Send</button>
+        <button onclick="toggleCommentBox('${postId}')">💬 Comment</button>
         <div class="comments" id="comments-${postId}" style="display:none;">
           <div class="comments-list" id="commentsList-${postId}"></div>
           <div class="top-reply-box">
             <input type="text" id="commentInput-${postId}" placeholder="Comment එකක්...">
-            <button onclick="addComment('${postId}')">Send</button>
+            <button class="cm-send-btn" onclick="addComment('${postId}')">Send</button>
           </div>
         </div>
       `;
@@ -124,9 +123,8 @@ async function reactPost(postId, type) {
   } catch(e){console.error(e);}
 }
 
-// ---- Real‑time Comment System with Threads ----
+// ---- Real‑time Comment System ----
 function loadComments(postId) {
-  // Listen to all comments for this post and rebuild tree
   db.collection("posts").doc(postId).collection("comments")
     .orderBy("timestamp","asc")
     .onSnapshot(snapshot => {
@@ -166,7 +164,7 @@ function renderCommentNode(postId, node, depth, container) {
 
   const div = document.createElement('div');
   div.className = 'comment-thread' + (depth>0?' indented':'');
-  div.style.marginLeft = `${depth*20}px`;
+  div.style.marginLeft = depth>0 ? '20px' : '0';
   div.innerHTML = `
     <div class="comment-body">
       <strong>${escapeHtml(node.nickname||'Anon')}:</strong> <span class="comment-text">${escapeHtml(node.text)}</span>
@@ -180,12 +178,11 @@ function renderCommentNode(postId, node, depth, container) {
     </div>
     <div class="reply-box" id="replyBox-${postId}-${commentId}" style="display:none;">
       <input type="text" id="replyInput-${postId}-${commentId}" placeholder="Reply...">
-      <button onclick="addReply('${postId}','${commentId}')">Send</button>
+      <button class="cm-send-btn" onclick="addReply('${postId}','${commentId}')">Send</button>
     </div>
     <div class="children-comments" id="children-${postId}-${commentId}"></div>
   `;
   container.appendChild(div);
-  // Render children recursively
   if(node.children && node.children.length) {
     const childContainer = document.getElementById(`children-${postId}-${commentId}`);
     node.children.forEach(child => renderCommentNode(postId, child, depth+1, childContainer));
@@ -217,7 +214,6 @@ function addReply(postId, parentCommentId) {
     reactions: {like:0,love:0,haha:0,wow:0,sad:0,angry:0}
   }).then(() => {
     input.value = '';
-    // Hide reply box after sending
     document.getElementById(`replyBox-${postId}-${parentCommentId}`).style.display = 'none';
   });
 }
@@ -248,5 +244,4 @@ function toggleReplyBox(postId, commentId) {
   div.style.display = div.style.display === 'none' ? 'flex' : 'none';
 }
 
-// Start
 loadPosts();
