@@ -858,3 +858,11 @@ body {
 .admin-btn { background: #fff; color: #000; border: none; padding: 6px 16px; border-radius: 8px; font-weight: 600; font-size: 13px; cursor: pointer; margin: 4px; transition: 0.2s; }
 .admin-btn:hover { background: #e0e0e0; }
 #reportedPostsList .post { margin-top: 8px; padding: 10px; font-size: 13px; }
+
+/* Comment Actions Dropdown */
+.comment-actions { position: relative; display: inline-flex; }
+.cm-menu-btn { background: none; border: 1px solid #333; color: #ccc; font-size: 14px; line-height: 1; padding: 2px 6px; border-radius: 4px; cursor: pointer; transition: 0.2s; margin-left: 4px; }
+.cm-menu-btn:hover { border-color: #555; color: #fff; }
+.cm-menu { position: absolute; right: 0; top: 100%; background: #0a0a0a; border: 1px solid #2a2a2a; border-radius: 8px; padding: 4px; z-index: 25; display: flex; flex-direction: column; gap: 2px; min-width: 80px; display: none; }
+.cm-menu button { background: none; border: none; color: #ccc; padding: 4px 8px; text-align: left; font-size: 12px; cursor: pointer; border-radius: 4px; transition: 0.2s; }
+.cm-menu button:hover { background: #1f1f1f; color: #fff; }
