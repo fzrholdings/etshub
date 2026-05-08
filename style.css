@@ -853,3 +853,8 @@ body {
 .chat-messages { max-height: 200px; overflow-y: auto; background: #000; border-radius: 6px; padding: 8px; margin-bottom: 8px; font-size: 13px; }
 .chat-msg { margin-bottom: 4px; }
 .chat-msg strong { color: #fff; margin-right: 4px; }
+
+/* Admin Panel */
+.admin-btn { background: #fff; color: #000; border: none; padding: 6px 16px; border-radius: 8px; font-weight: 600; font-size: 13px; cursor: pointer; margin: 4px; transition: 0.2s; }
+.admin-btn:hover { background: #e0e0e0; }
+#reportedPostsList .post { margin-top: 8px; padding: 10px; font-size: 13px; }
