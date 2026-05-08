@@ -86,10 +86,19 @@ function loadPosts() {
           ${post.content ? `<div class="post-content">${escapeHtml(post.content)}</div>` : ''}
           ${post.imageUrl ? `<img src="${escapeHtml(post.imageUrl)}" alt="post image">` : ''}
           <div class="reactions">
-            <button onclick="react('${postId}', 'like')">👍 ${post.reactions.like}</button>
-            <button onclick="react('${postId}', 'love')">❤️ ${post.reactions.love}</button>
-            <button onclick="react('${postId}', 'horn')">📯 ${post.reactions.horn}</button>
-          </div>
+  <button onclick="react('${postId}', 'like')">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 22V11M2 13v7a2 2 0 002 2h12l4-10h-5.2a2 2 0 01-2-2V6a4 4 0 00-4-4h-.6a2 2 0 00-1.9 1.4L7 9"/><path d="M7 9h9.2a2 2 0 011.8 1.2L22 18"/></svg>
+    <span>${post.reactions.like}</span>
+  </button>
+  <button onclick="react('${postId}', 'love')">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+    <span>${post.reactions.love}</span>
+  </button>
+  <button onclick="react('${postId}', 'horn')">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a3 3 0 010 6M5 8h2l4-5v18l-4-5H5a2 2 0 01-2-2v-6a2 2 0 012-2z"/></svg>
+    <span>${post.reactions.horn}</span>
+  </button>
+</div>
           <button onclick="toggleCommentBox('${postId}')">💬 Comment</button>
           <div class="comments" id="comments-${postId}" style="display:none;">
             <div class="comments-list" id="commentsList-${postId}"></div>
