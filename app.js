@@ -225,11 +225,41 @@ function switchTab(tabName) {
   if (tabName === 'convoys') loadConvoys();
 }
 
+// ========== Advanced Convoy Planner ==========
+
+let allConvoysData = []; // store for search
+
 async function createConvoy() {
   const title = document.getElementById('convoyTitle').value.trim();
+  const server = document.getElementById('convoyServer').value;
+  const meeting = document.getElementById('convoyMeeting').value.trim();
   const dateTimeStr = document.getElementById('convoyDateTime').value;
+  const maxSlots = parseInt(document.getElementById('convoyMaxSlots').value) || 0;
   const desc = document.getElementById('convoyDesc').value.trim();
+  const type = document.getElementById('convoyType').value;
+  
+  // DLCs
+  const dlcCheckboxes = document.querySelectorAll('.dlc-checkboxes input:checked');
+  const dlcs = Array.from(dlcCheckboxes).map(cb => cb.value);
+  
+  // Tags
+  const tagsStr = document.getElementById('convoyTags').value.trim();
+  const tags = tagsStr ? tagsStr.split(',').map(t => t.trim()).filter(t => t) : [];
+  
+  // Route image
+  const fileInput = document.getElementById('convoyImageInput');
+  let routeImageUrl = null;
+  if (fileInput.files[0]) {
+    try {
+      const compressedFile = await compressImage(fileInput.files[0]);
+      routeImageUrl = await uploadImage(compressedFile);
+    } catch (e) {
+      return showToast('Route image upload failed');
+    }
+  }
+  
   if (!title || !dateTimeStr) return showToast('Title and date are required!');
+  if (!server) return showToast('Please select a server');
   
   const datetime = new Date(dateTimeStr);
   if (isNaN(datetime.getTime())) return showToast('Invalid date/time');
@@ -237,15 +267,28 @@ async function createConvoy() {
   try {
     await db.collection("convoys").add({
       title,
+      server,
+      meetingLocation: meeting,
       datetime: firebase.firestore.Timestamp.fromDate(datetime),
+      maxSlots,
       description: desc,
+      dlcs,
+      tags,
+      routeImage: routeImageUrl,
+      type,
       creatorName: getAnonymousName(),
       participants: {}
     });
+    // Clear form
     document.getElementById('convoyTitle').value = '';
+    document.getElementById('convoyServer').value = '';
+    document.getElementById('convoyMeeting').value = '';
     document.getElementById('convoyDateTime').value = '';
+    document.getElementById('convoyMaxSlots').value = '';
     document.getElementById('convoyDesc').value = '';
-    showToast('Convoy scheduled!');
+    document.getElementById('convoyTags').value = '';
+    document.getElementById('convoyImageInput').value = '';
+    showToast('🚀 Convoy scheduled!');
     loadConvoys();
   } catch (e) {
     console.error(e);
@@ -255,6 +298,7 @@ async function createConvoy() {
 
 function loadConvoys() {
   db.collection("convoys").orderBy("datetime", "asc").onSnapshot(snapshot => {
+    allConvoysData = [];
     const container = document.getElementById('convoysList');
     container.innerHTML = '';
     if (snapshot.empty) {
@@ -264,30 +308,56 @@ function loadConvoys() {
     snapshot.forEach(doc => {
       const convoy = doc.data();
       const convoyId = doc.id;
-      const anonId = getAnonymousId();
-      const participants = convoy.participants || {};
-      const isJoined = !!participants[anonId];
-      const count = Object.keys(participants).length;
-
-      const card = document.createElement('div');
-      card.className = 'convoy-card';
-      card.innerHTML = `
-        <div class="convoy-title">${escapeHtml(convoy.title)}</div>
-        <div class="convoy-meta">
-          🕒 ${convoy.datetime.toDate().toLocaleString()} • by ${escapeHtml(convoy.creatorName)}
-        </div>
-        ${convoy.description ? `<div class="convoy-desc">${escapeHtml(convoy.description)}</div>` : ''}
-        <button class="convoy-join-btn ${isJoined ? 'joined' : ''}" onclick="toggleJoinConvoy('${convoyId}')">${isJoined ? '✔ Joined' : 'Join Convoy'}</button>
-        <div class="convoy-participants">${count} participant${count !== 1 ? 's' : ''}</div>
-      `;
-      container.appendChild(card);
+      allConvoysData.push({ id: convoyId, ...convoy });
     });
+    renderConvoyCards(allConvoysData);
+  });
+}
+
+function renderConvoyCards(convoys) {
+  const container = document.getElementById('convoysList');
+  container.innerHTML = '';
+  if (convoys.length === 0) {
+    container.innerHTML = '<p style="color:#aaa; text-align:center;">No matching convoys.</p>';
+    return;
+  }
+  convoys.forEach(convoy => {
+    const convoyId = convoy.id;
+    const anonId = getAnonymousId();
+    const participants = convoy.participants || {};
+    const isJoined = !!participants[anonId];
+    const participantNames = Object.keys(participants); // array of anonIds, we need to map to names? anonId != name, so we can't show names directly without storing names. We'll store names in participants object { [anonId]: name }.
+    // For now, we'll just show count. To show names, we need to store name as well. We'll update the join function to store name.
+    const count = participantNames.length;
+    const maxSlots = convoy.maxSlots || 0;
+    const slotsText = maxSlots > 0 ? `${count}/${maxSlots}` : `${count}`;
+
+    const card = document.createElement('div');
+    card.className = 'convoy-card';
+    card.innerHTML = `
+      <div class="convoy-title">${escapeHtml(convoy.title)}</div>
+      <div class="convoy-meta">
+        <span>🖥️ ${escapeHtml(convoy.server || 'N/A')}</span>
+        ${convoy.meetingLocation ? `<span>📍 ${escapeHtml(convoy.meetingLocation)}</span>` : ''}
+        <span>🕒 ${convoy.datetime.toDate().toLocaleString()}</span>
+        ${convoy.dlcs && convoy.dlcs.length > 0 ? `<span>📦 ${convoy.dlcs.join(', ')}</span>` : ''}
+        ${convoy.tags && convoy.tags.length > 0 ? `<span>🏷️ ${convoy.tags.join(', ')}</span>` : ''}
+        <span>👥 ${slotsText} trucks</span>
+        ${convoy.type ? `<span>🔒 ${convoy.type.toUpperCase()}</span>` : ''}
+      </div>
+      ${convoy.description ? `<div class="convoy-desc">${escapeHtml(convoy.description)}</div>` : ''}
+      ${convoy.routeImage ? `<img src="${escapeHtml(convoy.routeImage)}" class="convoy-route-img" alt="Route Map" onclick="window.open(this.src)">` : ''}
+      <button class="convoy-join-btn ${isJoined ? 'joined' : ''}" onclick="toggleJoinConvoy('${convoyId}')">${isJoined ? '✔ Joined' : 'Join Convoy'}</button>
+      <div class="convoy-participants">${slotsText} participant${count !== 1 ? 's' : ''}</div>
+    `;
+    container.appendChild(card);
   });
 }
 
 async function toggleJoinConvoy(convoyId) {
   const ref = db.collection("convoys").doc(convoyId);
   const anonId = getAnonymousId();
+  const anonName = getAnonymousName(); // store name with join
   
   try {
     await db.runTransaction(async (transaction) => {
@@ -298,7 +368,7 @@ async function toggleJoinConvoy(convoyId) {
       if (participants[anonId]) {
         delete participants[anonId];
       } else {
-        participants[anonId] = true;
+        participants[anonId] = anonName; // store name for display
       }
       transaction.update(ref, { participants });
     });
@@ -306,6 +376,19 @@ async function toggleJoinConvoy(convoyId) {
     console.error(e);
     showToast('Failed to update participation');
   }
+}
+
+// Search filter
+function filterConvoys() {
+  const term = document.getElementById('convoySearch').value.trim().toLowerCase();
+  if (!term) { renderConvoyCards(allConvoysData); return; }
+  const filtered = allConvoysData.filter(c => {
+    return (c.title && c.title.toLowerCase().includes(term)) ||
+           (c.server && c.server.toLowerCase().includes(term)) ||
+           (c.meetingLocation && c.meetingLocation.toLowerCase().includes(term)) ||
+           (c.tags && c.tags.some(t => t.toLowerCase().includes(term)));
+  });
+  renderConvoyCards(filtered);
 }
 
 function loadPosts() {
