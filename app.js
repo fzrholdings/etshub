@@ -16,29 +16,17 @@ auth.signInAnonymously().catch(console.error);
 
 const IMGBB_API_KEY = "2e6555f84f2cba4982c98e35ff987554";
 
-function filterBadWords(text) {
-  let filtered = text;
-  badWords.forEach(word => {
-    const regex = new RegExp(`\\b${word}\\b`, 'gi'); // word boundary, case‑insensitive
-    filtered = filtered.replace(regex, '***');
-  });
-  return filtered;
-}
-
 // ----- Bad Word Filter -----
 const badWords = [
-  // English common bad words
-  'fuck', 'shit', 'ass', 'bitch', 'bastard', 'dick', 'piss', 'pussy', 'motherfucker', 'cunt', 'asshole', 'jerk', 'sex', 'niggar'
-  // Sinhala bad words (common)
-  'හුත්‍ත', 'පක', 'වේස', 'කැරි', 'බල්ල', 'පයිය', 'හුත්තිගෙ', 'වේසිගෙ', 'අවජාතක', 'පකයා', 'හුත්තා', 'හුත්ති', 'හුකලා', 'හුකනවා', 'හුකපන්', 'බහුකාපන්', 'වේසි', 'වේසාවො', 'පොන්නයා', 'බැල්ලි', 'බිජ්ජ', 'කැරියා', 'කැරියද', 'කැරියෙක්', 'හුත්තෙක්', 'වේසියක්', 'පකෙක්', 'පකයෙක්'
-'huththa', 'paka', 'wesa', 'vesa', 'kari', 'balla', 'paiya', 'payya', 'huththige', ''hutta', 'huttige', 'wesige', 'vesige', 'awajathaka', 'avajathaka', 'pakaya', 'hutti', 'huththi', 'hukapan', 'bahukapan', 'wesi', 'vesi', 'wesawo', 'vesavo', 'wesavo', 'vesawo', 'ponnaya', 'pnnya', 'balli', 'bijja', 'kariya', 'kariyek', 'kariyada', 'kariyekda', 'huttek', 'huththek', 'pakek', 'pakayek' 
-  // Add more as needed
+  'fuck', 'shit', 'ass', 'bitch', 'bastard', 'dick', 'piss', 'pussy', 'motherfucker', 'cunt', 'asshole', 'jerk', 'sex', 'niggar',
+  'හුත්‍ත', 'පක', 'වේස', 'කැරි', 'බල්ල', 'පයිය', 'හුත්තිගෙ', 'වේසිගෙ', 'අවජාතක', 'පකයා', 'හුත්තා', 'හුත්ති', 'හුකලා', 'හුකනවා', 'හුකපන්', 'බහුකාපන්', 'වේසි', 'වේසාවො', 'පොන්නයා', 'බැල්ලි', 'බිජ්ජ', 'කැරියා', 'කැරියද', 'කැරියෙක්', 'හුත්තෙක්', 'වේසියක්', 'පකෙක්', 'පකයෙක්',
+  'huththa', 'paka', 'wesa', 'vesa', 'kari', 'balla', 'paiya', 'payya', 'huththige', 'hutta', 'huttige', 'wesige', 'vesige', 'awajathaka', 'avajathaka', 'pakaya', 'hutti', 'huththi', 'hukapan', 'bahukapan', 'wesi', 'vesi', 'wesawo', 'vesavo', 'wesavo', 'vesawo', 'ponnaya', 'pnnya', 'balli', 'bijja', 'kariya', 'kariyek', 'kariyada', 'kariyekda', 'huttek', 'huththek', 'pakek', 'pakayek'
 ];
 
 function filterBadWords(text) {
   let filtered = text;
   badWords.forEach(word => {
-    const regex = new RegExp(`\\b${word}\\b`, 'gi'); // word boundary, case‑insensitive
+    const regex = new RegExp(`\\b${word}\\b`, 'gi');
     filtered = filtered.replace(regex, '***');
   });
   return filtered;
@@ -78,7 +66,6 @@ async function uploadImage(file) {
 
 // ---- Post Functions ----
 async function createPost() {
-    // Spam prevention: 30s cooldown
   if (isCooldownActive()) {
     showToast('Please wait 30 seconds between posts');
     return;
@@ -86,14 +73,12 @@ async function createPost() {
   const nickname = getAnonymousName();
   const content = document.getElementById('postContent').value.trim();
   
-  // Check if there's text or selected images
   if (!content && selectedFiles.length === 0) {
     return showToast('Text or image required');
   }
 
   let imageUrls = [];
   
-  // Upload each selected file
   if (selectedFiles.length > 0) {
     try {
       for (let file of selectedFiles) {
@@ -102,7 +87,6 @@ async function createPost() {
       }
     } catch (e) {
       showToast('Image upload fail');
-      console.error(e);
       return;
     }
   }
@@ -111,16 +95,15 @@ async function createPost() {
     await db.collection("posts").add({
       nickname,
       content,
-      imageUrls,      // array of URLs (new)
-      imageUrl: null, // keep for backward compat (optional)
+      imageUrls,
+      imageUrl: null,
       timestamp: firebase.firestore.FieldValue.serverTimestamp(),
       reactions: { like:0, love:0, haha:0, wow:0, sad:0, angry:0 }
     });
-        startCooldown(30000);
-    // Reset form
+    startCooldown(30000);
     document.getElementById('postContent').value = '';
-    selectedFiles.length = 0; // clear array
-    renderPreviews(); // update previews (empty)
+    selectedFiles.length = 0;
+    renderPreviews();
   } catch (e) {
     console.error('Post fail:', e);
     showToast('Posting failed');
@@ -131,21 +114,17 @@ async function createPost() {
 function getCooldownExpireTime() {
   return parseInt(localStorage.getItem('postCooldown') || '0', 10);
 }
-
 function isCooldownActive() {
   return Date.now() < getCooldownExpireTime();
 }
-
 function startCooldown(durationMs) {
   const expireTime = Date.now() + durationMs;
   localStorage.setItem('postCooldown', expireTime);
   runCooldownTimer(expireTime);
 }
-
 function runCooldownTimer(expireTime) {
   const btn = document.getElementById('postButton');
   if (!btn) return;
-
   btn.disabled = true;
   const update = () => {
     const remaining = Math.max(0, expireTime - Date.now());
@@ -155,19 +134,14 @@ function runCooldownTimer(expireTime) {
       localStorage.removeItem('postCooldown');
       return;
     }
-    const secs = Math.ceil(remaining / 1000);
-    btn.textContent = `Wait ${secs}s...`;
+    btn.textContent = `Wait ${Math.ceil(remaining / 1000)}s...`;
     setTimeout(update, 1000);
   };
   update();
 }
-
-// Check on page load if cooldown still active
 (function() {
   const expire = getCooldownExpireTime();
-  if (Date.now() < expire) {
-    runCooldownTimer(expire);
-  }
+  if (Date.now() < expire) runCooldownTimer(expire);
 })();
 
 function loadPosts() {
@@ -188,7 +162,6 @@ function loadPosts() {
       const btnText = userReactType ? userReactType.charAt(0).toUpperCase()+userReactType.slice(1) : (totalReactions>0?top.charAt(0).toUpperCase()+top.slice(1):'Like');
       const countStr = totalReactions>0?' · '+totalReactions:'';
 
-      // Create post div
       const div = document.createElement('div');
       div.className = 'post';
       div.id = 'post-' + postId;
@@ -202,13 +175,13 @@ function loadPosts() {
           <div class="post-actions">
             <button onclick="togglePostMenu('${postId}')" class="menu-btn">⋮</button>
             <div class="post-menu" id="menu-${postId}" style="display:none;">
-  <button onclick="sharePost('${postId}', '${escapeHtml(post.content || '')}')">Share</button>
-  ${post.nickname !== getAnonymousName() ? `<button onclick="reportPost('${postId}')">Report</button>` : ''}
-  ${post.nickname === getAnonymousName() ? `
-    <button onclick="editPost('${postId}')">Edit</button>
-    <button onclick="deletePost('${postId}')">Delete</button>
-  ` : ''}
-</div>
+              <button onclick="sharePost('${postId}', '${escapeHtml(post.content || '')}')">Share</button>
+              ${post.nickname !== getAnonymousName() ? `<button onclick="reportPost('${postId}')">Report</button>` : ''}
+              ${post.nickname === getAnonymousName() ? `
+                <button onclick="editPost('${postId}')">Edit</button>
+                <button onclick="deletePost('${postId}')">Delete</button>
+              ` : ''}
+            </div>
           </div>
         </div>
         <div class="post-content">${post.content ? filterBadWords(escapeHtml(post.content)) : ''}</div>
@@ -219,18 +192,16 @@ function loadPosts() {
             <button class="save-edit-btn">Save</button>
           </div>
         </div>
-       ${(post.imageUrls && post.imageUrls.length > 0) ? `
-  <div class="image-collage ${post.imageUrls.length === 1 ? 'single' : ''}">
-    ${post.imageUrls.map((url, index) => `
-      <img src="${escapeHtml(url)}" alt="image" onclick="openLightbox('${postId}', ${index})">
-    `).join('')}
-  </div>
-` : ''}
-${(!post.imageUrls || post.imageUrls.length === 0) && post.imageUrl ? `
-  <div class="image-collage single">
-    <img src="${escapeHtml(post.imageUrl)}" alt="image" onclick="openLightbox('${postId}', 0)">
-  </div>
-` : ''}
+        ${(post.imageUrls && post.imageUrls.length > 0) ? `
+          <div class="image-collage ${post.imageUrls.length === 1 ? 'single' : ''}">
+            ${post.imageUrls.map((url, index) => `<img src="${escapeHtml(url)}" alt="image" onclick="openLightbox('${postId}', ${index})">`).join('')}
+          </div>
+        ` : ''}
+        ${(!post.imageUrls || post.imageUrls.length === 0) && post.imageUrl ? `
+          <div class="image-collage single">
+            <img src="${escapeHtml(post.imageUrl)}" alt="image" onclick="openLightbox('${postId}', 0)">
+          </div>
+        ` : ''}
         <div class="reaction-wrapper">
           <button class="like-btn">${btnEmoji} <span>${btnText}</span>${countStr}</button>
           <div class="reaction-picker">
@@ -249,73 +220,61 @@ ${(!post.imageUrls || post.imageUrls.length === 0) && post.imageUrl ? `
       div.dataset.searchText = (post.content + ' ' + post.nickname).toLowerCase();
       container.appendChild(div);
       loadComments(postId);
-    }); // End of forEach
+    });
 
-    // === Deep Link Highlight & Scroll (ONE TIME, after all posts rendered) ===
     const hash = window.location.hash;
     if (hash && hash.startsWith('#post-')) {
-        const targetId = hash.replace('#post-', '');
-        setTimeout(() => {
-            const targetPost = document.getElementById('post-' + targetId);
-            if (targetPost) {
-                targetPost.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                targetPost.classList.add('highlight');
-                setTimeout(() => targetPost.classList.remove('highlight'), 2500);
-            }
-        }, 300);
+      const targetId = hash.replace('#post-', '');
+      setTimeout(() => {
+        const targetPost = document.getElementById('post-' + targetId);
+        if (targetPost) {
+          targetPost.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          targetPost.classList.add('highlight');
+          setTimeout(() => targetPost.classList.remove('highlight'), 2500);
+        }
+      }, 300);
     }
   });
 }
 
-// ---- Toggle Reaction for Posts ----
+// Toggle Reaction for Posts
 async function reactPost(postId, type) {
   const ref = db.collection("posts").doc(postId);
   const userReactions = JSON.parse(localStorage.getItem('postReactions')||'{}');
   const currentType = userReactions[postId];
-  
   try {
     await db.runTransaction(async (transaction) => {
       const doc = await transaction.get(ref);
       if (!doc.exists) return;
       const data = doc.data();
       const reactions = { like:0, love:0, haha:0, wow:0, sad:0, angry:0, ...data.reactions };
-      
       if (currentType === type) {
-        // Same reaction clicked → remove
         reactions[type] = Math.max(0, (reactions[type] || 0) - 1);
         delete userReactions[postId];
       } else {
-        // Different or no reaction → add new, remove old if any
-        if (currentType) {
-          reactions[currentType] = Math.max(0, (reactions[currentType] || 0) - 1);
-        }
+        if (currentType) reactions[currentType] = Math.max(0, (reactions[currentType] || 0) - 1);
         reactions[type] = (reactions[type] || 0) + 1;
         userReactions[postId] = type;
       }
-      
       transaction.update(ref, { reactions });
     });
-    
     localStorage.setItem('postReactions', JSON.stringify(userReactions));
-    // onSnapshot will automatically re-render UI
   } catch (e) {
     console.error("Reaction toggle failed:", e);
   }
 }
 
-// ---- Real‑time Comment System with toggle reactions ----
+// Comment System
 function loadComments(postId) {
-  db.collection("posts").doc(postId).collection("comments")
-    .orderBy("timestamp","asc")
-    .onSnapshot(snapshot => {
-      const comments = [];
-      snapshot.forEach(doc => comments.push({id: doc.id, ...doc.data()}));
-      const tree = buildCommentTree(comments);
-      const list = document.getElementById('commentsList-'+postId);
-      if(!list) return;
-      list.innerHTML = '';
-      tree.forEach(root => renderCommentNode(postId, root, 0, list));
-    });
+  db.collection("posts").doc(postId).collection("comments").orderBy("timestamp","asc").onSnapshot(snapshot => {
+    const comments = [];
+    snapshot.forEach(doc => comments.push({id: doc.id, ...doc.data()}));
+    const tree = buildCommentTree(comments);
+    const list = document.getElementById('commentsList-'+postId);
+    if(!list) return;
+    list.innerHTML = '';
+    tree.forEach(root => renderCommentNode(postId, root, 0, list));
+  });
 }
 
 function buildCommentTree(comments) {
@@ -398,38 +357,29 @@ function addReply(postId, parentCommentId) {
   });
 }
 
-// ---- Toggle Reaction for Comments ----
+// Toggle Reaction for Comments
 async function reactComment(postId, commentId, type) {
   const ref = db.collection("posts").doc(postId).collection("comments").doc(commentId);
   const userReactions = JSON.parse(localStorage.getItem('commentReactions')||'{}');
   const key = `${postId}_${commentId}`;
   const currentType = userReactions[key];
-  
   try {
     await db.runTransaction(async (transaction) => {
       const doc = await transaction.get(ref);
       if (!doc.exists) return;
       const data = doc.data();
       const reactions = { like:0, love:0, haha:0, wow:0, sad:0, angry:0, ...data.reactions };
-      
       if (currentType === type) {
-        // Remove reaction
         reactions[type] = Math.max(0, (reactions[type] || 0) - 1);
         delete userReactions[key];
       } else {
-        // Add new, remove old if exists
-        if (currentType) {
-          reactions[currentType] = Math.max(0, (reactions[currentType] || 0) - 1);
-        }
+        if (currentType) reactions[currentType] = Math.max(0, (reactions[currentType] || 0) - 1);
         reactions[type] = (reactions[type] || 0) + 1;
         userReactions[key] = type;
       }
-      
       transaction.update(ref, { reactions });
     });
-    
     localStorage.setItem('commentReactions', JSON.stringify(userReactions));
-    // UI re-renders via onSnapshot
   } catch (e) {
     console.error("Comment reaction toggle failed:", e);
   }
@@ -444,84 +394,64 @@ function toggleReplyBox(postId, commentId) {
   div.style.display = div.style.display === 'none' ? 'flex' : 'none';
 }
 
-// File selection handler
-const selectedFiles = []; // store File objects
-
+// File handling
+const selectedFiles = [];
 function handleFileSelect(fileList) {
-    // Filter by size & limit
-    const maxSize = 10 * 1024 * 1024; // 10MB
-    const newFiles = Array.from(fileList);
-    
-    // Check size limit and show errors
-    const oversized = newFiles.filter(f => f.size > maxSize);
-    if (oversized.length > 0) {
-        showToast(`File(s) too large! Maximum 10MB each.\n${oversized.map(f=>f.name).join(', ')}`);
-        // Remove oversized
-        const validFiles = newFiles.filter(f => f.size <= maxSize);
-        // Clear the file input so user can reselect (we'll reconstruct DataTransfer)
-        document.getElementById('imageInput').value = ''; 
-        // We'll just add valid ones, but we can also let them reselect
-        // For simplicity, we'll only process valid files from this batch
-        addFiles(validFiles);
-    } else {
-        addFiles(newFiles);
-    }
-    // Clear the file input to allow re-selecting same file later
+  const maxSize = 10 * 1024 * 1024;
+  const newFiles = Array.from(fileList);
+  const oversized = newFiles.filter(f => f.size > maxSize);
+  if (oversized.length > 0) {
+    showToast(`File(s) too large! Maximum 10MB each.`);
+    const validFiles = newFiles.filter(f => f.size <= maxSize);
     document.getElementById('imageInput').value = '';
+    addFiles(validFiles);
+  } else {
+    addFiles(newFiles);
+  }
+  document.getElementById('imageInput').value = '';
 }
-
 function addFiles(files) {
-    // Enforce total max 3 images
-    if (selectedFiles.length + files.length > 3) {
-        showToast('Maximum 3 images allowed!');
-        return;
-    }
-    selectedFiles.push(...files);
-    renderPreviews();
+  if (selectedFiles.length + files.length > 3) {
+    showToast('Maximum 3 images allowed!');
+    return;
+  }
+  selectedFiles.push(...files);
+  renderPreviews();
 }
-
 function renderPreviews() {
-    const container = document.getElementById('previewContainer');
-    container.innerHTML = '';
-    selectedFiles.forEach((file, index) => {
-        const reader = new FileReader();
-        reader.onload = (e) => {
-            const div = document.createElement('div');
-            div.className = 'preview-item';
-            div.innerHTML = `
-                <img src="${e.target.result}" alt="preview">
-                <button class="remove-preview" onclick="removeFile(${index})">&times;</button>
-            `;
-            container.appendChild(div);
-        };
-        reader.readAsDataURL(file);
-    });
+  const container = document.getElementById('previewContainer');
+  container.innerHTML = '';
+  selectedFiles.forEach((file, index) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const div = document.createElement('div');
+      div.className = 'preview-item';
+      div.innerHTML = `<img src="${e.target.result}" alt="preview"><button class="remove-preview" onclick="removeFile(${index})">&times;</button>`;
+      container.appendChild(div);
+    };
+    reader.readAsDataURL(file);
+  });
 }
-
 function removeFile(index) {
-    selectedFiles.splice(index, 1);
-    renderPreviews();
+  selectedFiles.splice(index, 1);
+  renderPreviews();
 }
 
-// ----- Post Actions Menu -----
+// Post Actions Menu
 function togglePostMenu(postId) {
-    const menu = document.getElementById('menu-'+postId);
-    if (!menu) return;
-    const isVisible = menu.style.display === 'block';
-    // Hide all menus first
-    document.querySelectorAll('.post-menu').forEach(m => m.style.display = 'none');
-    menu.style.display = isVisible ? 'none' : 'block';
+  const menu = document.getElementById('menu-'+postId);
+  if (!menu) return;
+  const isVisible = menu.style.display === 'block';
+  document.querySelectorAll('.post-menu').forEach(m => m.style.display = 'none');
+  menu.style.display = isVisible ? 'none' : 'block';
 }
-
-// Close menus when clicking outside
 document.addEventListener('click', (e) => {
-    if (!e.target.closest('.post-actions')) {
-        document.querySelectorAll('.post-menu').forEach(m => m.style.display = 'none');
-    }
+  if (!e.target.closest('.post-actions')) {
+    document.querySelectorAll('.post-menu').forEach(m => m.style.display = 'none');
+  }
 });
 
 function showToast(msg) {
-  // Remove existing toast if any
   const old = document.querySelector('.toast');
   if(old) old.remove();
   const toast = document.createElement('div');
@@ -536,19 +466,12 @@ function showToast(msg) {
 }
 
 function sharePost(postId, text) {
-    const postUrl = window.location.href.split('#')[0] + '#post-' + postId;
-    const shareData = {
-        title: 'ETS Ceylon FM Hub',
-        text: text ? text : 'Check this post!',
-        url: postUrl
-    };
-    if (navigator.share) {
-        navigator.share(shareData).catch(() => {});
-    } else {
-        navigator.clipboard.writeText(postUrl).then(() => {
-            showToast('📋 Post link copied!');
-        }).catch(() => showToast('Copy failed'));
-    }
+  const postUrl = window.location.href.split('#')[0] + '#post-' + postId;
+  if (navigator.share) {
+    navigator.share({ title:'ETS Ceylon FM Hub', text: text||'Check this post!', url: postUrl }).catch(()=>{});
+  } else {
+    navigator.clipboard.writeText(postUrl).then(() => showToast('📋 Post link copied!')).catch(() => showToast('Copy failed'));
+  }
 }
 
 async function editPost(postId) {
@@ -558,189 +481,124 @@ async function editPost(postId) {
     if (!doc.exists) return;
     const post = doc.data();
     const currentContent = post.content || '';
-    
-    // Find post container and show edit area
     const postDiv = document.querySelector(`[data-post-id="${postId}"]`);
     if (!postDiv) return;
     const contentDiv = postDiv.querySelector('.post-content');
     const editArea = postDiv.querySelector('.edit-area');
     const editTextarea = editArea.querySelector('textarea');
-    
-    // Hide static content, show edit
     contentDiv.style.display = 'none';
     editArea.style.display = 'flex';
     editTextarea.value = currentContent;
     editTextarea.focus();
-    
-    // Save action
     editArea.querySelector('.save-edit-btn').onclick = async () => {
       const newContent = editTextarea.value.trim();
       if (newContent === '' || newContent === currentContent) {
-        // Cancel editing
         contentDiv.style.display = 'block';
         editArea.style.display = 'none';
-        showToast('Post updated')
+        showToast('Post updated');
         return;
       }
       try {
         await docRef.update({ content: newContent });
-        // onSnapshot will update UI automatically
-      } catch(e) {
-        console.error(e);
-        showToast('Edit failed');
-      }
+      } catch(e) { console.error(e); showToast('Edit failed'); }
     };
-    
-    // Cancel action
     editArea.querySelector('.cancel-edit-btn').onclick = () => {
       contentDiv.style.display = 'block';
       editArea.style.display = 'none';
     };
-    
-  } catch(e) {
-    console.error(e);
-    showToast('Edit not available');
-  }
+  } catch(e) { console.error(e); showToast('Edit not available'); }
 }
 
 async function deletePost(postId) {
-    showConfirm('Delete this post? It will be permanently removed.', async () => {
-        try {
-            const commentsRef = db.collection("posts").doc(postId).collection("comments");
-            const commentSnap = await commentsRef.get();
-            const batch = db.batch();
-            commentSnap.forEach(doc => batch.delete(doc.ref));
-            await batch.commit();
-            await db.collection("posts").doc(postId).delete();
-        } catch(e) {
-            console.error(e);
-            showToast('❌ Delete failed');
-        }
-    });
+  showConfirm('Delete this post? It will be permanently removed.', async () => {
+    try {
+      const commentsRef = db.collection("posts").doc(postId).collection("comments");
+      const commentSnap = await commentsRef.get();
+      const batch = db.batch();
+      commentSnap.forEach(doc => batch.delete(doc.ref));
+      const reportsRef = db.collection("posts").doc(postId).collection("reports");
+      const reportSnap = await reportsRef.get();
+      reportSnap.forEach(doc => batch.delete(doc.ref));
+      await batch.commit();
+      await db.collection("posts").doc(postId).delete();
+    } catch(e) { console.error(e); showToast('❌ Delete failed'); }
+  });
 }
 
-// ----- Custom Confirm Modal -----
 function showConfirm(message, onConfirm) {
-    const modal = document.getElementById('confirmModal');
-    document.getElementById('confirmMessage').textContent = message;
-    modal.style.display = 'flex';
-    
-    const okBtn = document.getElementById('confirmOk');
-    const cancelBtn = document.getElementById('confirmCancel');
-    
-    const closeModal = () => { modal.style.display = 'none'; };
-    const cleanup = () => {
-        okBtn.removeEventListener('click', handleOk);
-        cancelBtn.removeEventListener('click', handleCancel);
-    };
-    const handleOk = () => { cleanup(); closeModal(); onConfirm(); };
-    const handleCancel = () => { cleanup(); closeModal(); };
-    
-    okBtn.addEventListener('click', handleOk);
-    cancelBtn.addEventListener('click', handleCancel);
+  const modal = document.getElementById('confirmModal');
+  document.getElementById('confirmMessage').textContent = message;
+  modal.style.display = 'flex';
+  const okBtn = document.getElementById('confirmOk');
+  const cancelBtn = document.getElementById('confirmCancel');
+  const closeModal = () => { modal.style.display = 'none'; };
+  const cleanup = () => {
+    okBtn.removeEventListener('click', handleOk);
+    cancelBtn.removeEventListener('click', handleCancel);
+  };
+  const handleOk = () => { cleanup(); closeModal(); onConfirm(); };
+  const handleCancel = () => { cleanup(); closeModal(); };
+  okBtn.addEventListener('click', handleOk);
+  cancelBtn.addEventListener('click', handleCancel);
 }
 
-// ----- Custom Toast Message -----
-function showToast(msg) {
-    const old = document.querySelector('.toast');
-    if(old) old.remove();
-    const toast = document.createElement('div');
-    toast.className = 'toast';
-    toast.textContent = msg;
-    document.body.appendChild(toast);
-    requestAnimationFrame(() => toast.classList.add('show'));
-    setTimeout(() => {
-        toast.classList.remove('show');
-        setTimeout(() => toast.remove(), 300);
-    }, 2000);
-}
-
-// ---- Image Lightbox ----
+// Lightbox
 let currentLightboxPostId = null;
 let currentLightboxIndex = 0;
 let lightboxImages = [];
-
 function openLightbox(postId, index) {
-    // Get the post's images
-    const postDiv = document.getElementById('post-' + postId);
-    if (!postDiv) return;
-    const images = [];
-    // collect all image URLs from the collage
-    postDiv.querySelectorAll('.image-collage img').forEach(img => {
-        images.push(img.src);
-    });
-    if (images.length === 0) return;
-    lightboxImages = images;
-    currentLightboxPostId = postId;
-    currentLightboxIndex = index;
-    showLightboxImage();
-    document.getElementById('lightbox').style.display = 'flex';
+  const postDiv = document.getElementById('post-' + postId);
+  if (!postDiv) return;
+  const images = [];
+  postDiv.querySelectorAll('.image-collage img').forEach(img => images.push(img.src));
+  if (images.length === 0) return;
+  lightboxImages = images;
+  currentLightboxPostId = postId;
+  currentLightboxIndex = index;
+  showLightboxImage();
+  document.getElementById('lightbox').style.display = 'flex';
 }
-
-function closeLightbox() {
-    document.getElementById('lightbox').style.display = 'none';
-}
-
+function closeLightbox() { document.getElementById('lightbox').style.display = 'none'; }
 function changeLightboxImage(direction) {
-    const newIndex = currentLightboxIndex + direction;
-    if (newIndex >= 0 && newIndex < lightboxImages.length) {
-        currentLightboxIndex = newIndex;
-        showLightboxImage();
-    }
+  const newIndex = currentLightboxIndex + direction;
+  if (newIndex >= 0 && newIndex < lightboxImages.length) {
+    currentLightboxIndex = newIndex;
+    showLightboxImage();
+  }
 }
-
 function showLightboxImage() {
-    const img = document.getElementById('lightboxImg');
-    const counter = document.getElementById('lightboxCounter');
-    img.src = lightboxImages[currentLightboxIndex];
-    counter.textContent = (currentLightboxIndex + 1) + ' / ' + lightboxImages.length;
+  document.getElementById('lightboxImg').src = lightboxImages[currentLightboxIndex];
+  document.getElementById('lightboxCounter').textContent = (currentLightboxIndex + 1) + ' / ' + lightboxImages.length;
 }
 
-// ----- Search Filter -----
+// Search
 function filterPosts() {
-    const term = document.getElementById('searchInput').value.trim().toLowerCase();
-    const posts = document.querySelectorAll('.post');
-    posts.forEach(post => {
-        const text = post.dataset.searchText || '';
-        post.style.display = (term === '' || text.includes(term)) ? '' : 'none';
-    });
+  const term = document.getElementById('searchInput').value.trim().toLowerCase();
+  document.querySelectorAll('.post').forEach(post => {
+    post.style.display = (term === '' || (post.dataset.searchText||'').includes(term)) ? '' : 'none';
+  });
 }
 
+// Report System
 async function reportPost(postId) {
   const anonId = getAnonymousId();
   const reportsRef = db.collection("posts").doc(postId).collection("reports");
-  
-  // 1️⃣ Check already reported by this user (Firestore)
   try {
     const existing = await reportsRef.where("anonId", "==", anonId).get();
-    if (!existing.empty) {
-      showToast('⚠️ You already reported this post');
-      return;
-    }
-  } catch(e) { console.error(e); return; }
+    if (!existing.empty) { showToast('⚠️ You already reported this post'); return; }
+  } catch(e) { console.error(e); showToast('Report check failed'); return; }
 
-  // 2️⃣ Add report
   try {
-    await reportsRef.add({
-      anonId,
-      timestamp: firebase.firestore.FieldValue.serverTimestamp()
-    });
+    await reportsRef.add({ anonId, timestamp: firebase.firestore.FieldValue.serverTimestamp() });
     showToast('🚩 Post reported');
-
-    // 3️⃣ Check total distinct reports
     const allReports = await reportsRef.get();
     const distinctIds = new Set();
     allReports.forEach(doc => distinctIds.add(doc.data().anonId));
-    
     if (distinctIds.size >= 3) {
-      // Delete the post automatically
       await deletePostInternal(postId);
       showToast('🗑️ Post removed due to reports');
     }
-  } catch(e) {
-    console.error(e);
-    showToast('Report failed');
-  }
+  } catch(e) { console.error(e); showToast('Report failed'); }
 }
 
 async function deletePostInternal(postId) {
@@ -749,83 +607,13 @@ async function deletePostInternal(postId) {
     const commentSnap = await commentsRef.get();
     const batch = db.batch();
     commentSnap.forEach(doc => batch.delete(doc.ref));
-    // Delete reports subcollection as well
     const reportsRef = db.collection("posts").doc(postId).collection("reports");
     const reportSnap = await reportsRef.get();
     reportSnap.forEach(doc => batch.delete(doc.ref));
     await batch.commit();
     await db.collection("posts").doc(postId).delete();
-  } catch(e) {
-    console.error("Auto delete failed:", e);
-  }
+  } catch(e) { console.error("Auto delete failed:", e); }
 }
 
-// ----- Anonymous Unique ID (Report tracking) -----
-function getAnonymousId() {
-  let id = localStorage.getItem('anonId');
-  if (!id) {
-    id = 'anon_' + Math.random().toString(36).substr(2, 9) + Date.now().toString(36);
-    localStorage.setItem('anonId', id);
-  }
-  return id;
-}
-
-// ----- Report Post -----
-async function reportPost(postId) {
-  const anonId = getAnonymousId();
-  const reportsRef = db.collection("posts").doc(postId).collection("reports");
-  
-  try {
-    // Check already reported
-    const existing = await reportsRef.where("anonId", "==", anonId).get();
-    if (!existing.empty) {
-      showToast('⚠️ You already reported this post');
-      return;
-    }
-  } catch(e) {
-    console.error(e);
-    showToast('Report check failed');
-    return;
-  }
-
-  try {
-    await reportsRef.add({
-      anonId,
-      timestamp: firebase.firestore.FieldValue.serverTimestamp()
-    });
-    showToast('🚩 Post reported');
-
-    // Check total distinct reporters
-    const allReports = await reportsRef.get();
-    const distinctIds = new Set();
-    allReports.forEach(doc => distinctIds.add(doc.data().anonId));
-    
-    if (distinctIds.size >= 3) {
-      await deletePostInternal(postId);
-      showToast('🗑️ Post removed due to reports');
-    }
-  } catch(e) {
-    console.error(e);
-    showToast('Report failed');
-  }
-}
-
-// ----- Internal Delete (no confirm) -----
-async function deletePostInternal(postId) {
-  try {
-    const commentsRef = db.collection("posts").doc(postId).collection("comments");
-    const commentSnap = await commentsRef.get();
-    const batch = db.batch();
-    commentSnap.forEach(doc => batch.delete(doc.ref));
-    // also delete reports subcollection
-    const reportsRef = db.collection("posts").doc(postId).collection("reports");
-    const reportSnap = await reportsRef.get();
-    reportSnap.forEach(doc => batch.delete(doc.ref));
-    await batch.commit();
-    await db.collection("posts").doc(postId).delete();
-  } catch(e) {
-    console.error("Auto delete failed:", e);
-  }
-}
-
+// Init
 loadPosts();
