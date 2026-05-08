@@ -77,29 +77,13 @@ async function createPost() {
     return showToast('Text or image required');
   }
 
-   // 🔞 NSFW Check using Free NSFWCheckers API
+  // 🔞 NSFW Check using Sightengine
   if (selectedFiles.length > 0) {
     for (let file of selectedFiles) {
-      try {
-        const formData = new FormData();
-        formData.append('image', file);
-
-        const apiResponse = await fetch('https://api.nsfwcheckers.com/v1/check', {
-          method: 'POST',
-          body: formData
-        });
-        
-        const result = await apiResponse.json();
-        console.log('NSFW Result:', result);
-        
-        // Check if result indicates NSFW content
-        if (result.nsfw || result.score > 0.7 || result.is_nsfw) {
-          showToast('🔞 NSFW image detected! Post rejected.');
-          return; // Stop post
-        }
-      } catch (e) {
-        console.warn('NSFW API call failed, skipping check:', e);
-        // Continue post anyway if API fails
+      const isNsfw = await checkImageNSFW(file);
+      if (isNsfw) {
+        showToast('🔞 NSFW image detected! Post rejected.');
+        return; // Stop the post
       }
     }
   }
@@ -640,6 +624,38 @@ async function deletePostInternal(postId) {
     await batch.commit();
     await db.collection("posts").doc(postId).delete();
   } catch(e) { console.error("Auto delete failed:", e); }
+}
+
+// ----- Sightengine NSFW Moderation -----
+const SIGHTENGINE_API_USER = "1778458502";
+const SIGHTENGINE_API_SECRET = "598QXkS4TcXXbfKTfDVMKxRomCbTomvr";
+
+async function checkImageNSFW(file) {
+  const formData = new FormData();
+  formData.append('api_user', SIGHTENGINE_API_USER);
+  formData.append('api_secret', SIGHTENGINE_API_SECRET);
+  formData.append('models', 'nudity-2.0'); // Only nudity model (saves operations)
+  formData.append('image', file);
+
+  try {
+    const response = await fetch('https://api.sightengine.com/1.0/check.json', {
+      method: 'POST',
+      body: formData
+    });
+    const result = await response.json();
+    
+    // Check nudity probabilities
+    if (result.nudity) {
+      const { sexual_activity, sexual_display, erotica } = result.nudity;
+      if (sexual_activity > 0.6 || sexual_display > 0.6 || erotica > 0.6) {
+        return true; // NSFW
+      }
+    }
+    return false; // Safe
+  } catch (e) {
+    console.warn('Sightengine check failed, allowing post:', e);
+    return false; // Fail open
+  }
 }
 
 // Init
