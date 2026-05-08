@@ -91,7 +91,7 @@ function loadPosts() {
             ${reactionTypes.map(t=>`<button class="reaction-option" onclick="event.stopPropagation(); reactPost('${postId}','${t}')">${emojiMap[t]}</button>`).join('')}
           </div>
         </div>
-        <button onclick="toggleCommentBox('${postId}')">💬 Comment</button>
+        <button class="comment-toggle-btn" onclick="toggleCommentBox('${postId}')">💬 Comment</button>
         <div class="comments" id="comments-${postId}" style="display:none;">
           <div class="comments-list" id="commentsList-${postId}"></div>
           <div class="top-reply-box">
