@@ -288,19 +288,21 @@ function loadPosts() {
     <span class="reaction-icon">
       ${userReactType 
         ? emojiMap[userReactType] 
-        : `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3H14zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"/></svg>`
+        : (totalReactions > 0 
+            ? emojiMap[top] 
+            : `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3H14zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"/></svg>`)
       }
     </span>
-    <span>${userReactType ? userReactType.charAt(0).toUpperCase() + userReactType.slice(1) : (totalReactions > 0 ? top.charAt(0).toUpperCase() + top.slice(1) : 'Like')}</span>
     ${totalReactions > 0 ? `<span class="reaction-count">${totalReactions}</span>` : ''}
   </button>
   <div class="reaction-picker">
-  ${reactionTypes.map(t => {
-    const count = post.reactions?.[t] || 0;
-    return `<button class="reaction-option" onclick="event.stopPropagation(); reactPost('${postId}','${t}')" title="${t.charAt(0).toUpperCase()+t.slice(1)}">
-      ${emojiMap[t]}${count > 0 ? `<small>${count}</small>` : ''}
-    </button>`;
-  }).join('')}
+    ${reactionTypes.map(t => {
+      const count = post.reactions?.[t] || 0;
+      return `<button class="reaction-option" onclick="event.stopPropagation(); reactPost('${postId}','${t}')" title="${t.charAt(0).toUpperCase()+t.slice(1)}">
+        ${emojiMap[t]}${count > 0 ? `<small>${count}</small>` : ''}
+      </button>`;
+    }).join('')}
+  </div>
 </div>
         <button class="comment-toggle-btn" onclick="toggleCommentBox('${postId}')">💬 Comment</button>
         <div class="comments" id="comments-${postId}" style="display:none;">
@@ -412,20 +414,21 @@ function renderCommentNode(postId, node, depth, container) {
     <span class="reaction-icon">
       ${userReactType 
         ? emojiMap[userReactType] 
-        : `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3H14zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"/></svg>`
+        : (totalReactions > 0 
+            ? emojiMap[top] 
+            : `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3H14zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"/></svg>`)
       }
     </span>
-    <span>${userReactType ? userReactType.charAt(0).toUpperCase() + userReactType.slice(1) : (totalReactions > 0 ? top.charAt(0).toUpperCase() + top.slice(1) : 'Like')}</span>
     ${totalReactions > 0 ? `<span class="reaction-count">${totalReactions}</span>` : ''}
   </button>
   <div class="cm-reaction-picker">
-  ${reactionTypes.map(t => {
-    const count = node.reactions?.[t] || 0;
-    return `<button class="reaction-option" onclick="event.stopPropagation(); reactComment('${postId}','${commentId}','${t}')" title="${t.charAt(0).toUpperCase()+t.slice(1)}">
-      ${emojiMap[t]}${count > 0 ? `<small>${count}</small>` : ''}
-    </button>`;
-  }).join('')}
-</div>
+    ${reactionTypes.map(t => {
+      const count = node.reactions?.[t] || 0;
+      return `<button class="reaction-option" onclick="event.stopPropagation(); reactComment('${postId}','${commentId}','${t}')" title="${t.charAt(0).toUpperCase()+t.slice(1)}">
+        ${emojiMap[t]}${count > 0 ? `<small>${count}</small>` : ''}
+      </button>`;
+    }).join('')}
+  </div>
 </div>
       </div>
       <button class="reply-toggle" onclick="toggleReplyBox('${postId}','${commentId}')">Reply</button>
