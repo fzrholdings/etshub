@@ -106,7 +106,22 @@ function loadPosts() {
       const div = document.createElement('div');
       div.className = 'post';
       div.innerHTML = `
-        <div class="post-header"><strong>${escapeHtml(post.nickname)}</strong><small>${post.timestamp?.toDate().toLocaleString()||'Just now'}</small></div>
+        <div class="post-header">
+    <div class="post-header-info">
+        <strong>${escapeHtml(post.nickname)}</strong>
+        <small>${post.timestamp?.toDate().toLocaleString()||'Just now'}</small>
+    </div>
+    <div class="post-actions">
+        <button onclick="togglePostMenu('${postId}')" class="menu-btn">⋮</button>
+        <div class="post-menu" id="menu-${postId}" style="display:none;">
+            <button onclick="sharePost('${escapeHtml(post.content || '')}')">Share</button>
+            ${post.nickname === getAnonymousName() ? `
+                <button onclick="editPost('${postId}')">Edit</button>
+                <button onclick="deletePost('${postId}')">Delete</button>
+            ` : ''}
+        </div>
+    </div>
+</div>
         ${post.content?`<div class="post-content">${escapeHtml(post.content)}</div>`:''}
         ${(post.imageUrls && post.imageUrls.length > 0) ? post.imageUrls.map(url => `<img src="${escapeHtml(url)}">`).join('') : ''}
 ${(!post.imageUrls || post.imageUrls.length === 0) && post.imageUrl ? `<img src="${escapeHtml(post.imageUrl)}">` : ''}
@@ -383,5 +398,46 @@ document.addEventListener('click', (e) => {
         document.querySelectorAll('.post-menu').forEach(m => m.style.display = 'none');
     }
 });
+
+function sharePost(text) {
+    const shareData = {
+        title: 'ETS Ceylon FM Hub',
+        text: text ? text : 'Check out ETS Ceylon FM Hub!',
+        url: window.location.href
+    };
+    if (navigator.share) {
+        navigator.share(shareData).catch(() => {});
+    } else {
+        navigator.clipboard.writeText(shareData.text + ' ' + shareData.url).then(() => {
+            alert('Link copied to clipboard!');
+        }).catch(() => alert('Sharing not supported'));
+    }
+}
+
+async function editPost(postId) {
+    const docRef = db.collection("posts").doc(postId);
+    try {
+        const doc = await docRef.get();
+        if (!doc.exists) return alert('Post not found');
+        const currentContent = doc.data().content || '';
+        const newContent = prompt('Edit post content:', currentContent);
+        if (newContent === null || newContent.trim() === '') return;
+        await docRef.update({ content: newContent.trim() });
+    } catch(e) {
+        console.error(e);
+        alert('Edit failed');
+    }
+}
+
+async function deletePost(postId) {
+    if (!confirm('Delete this post? This cannot be undone.')) return;
+    try {
+        await db.collection("posts").doc(postId).delete();
+        // UI will automatically remove via onSnapshot
+    } catch(e) {
+        console.error(e);
+        alert('Delete failed');
+    }
+}
 
 loadPosts();
