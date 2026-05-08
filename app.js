@@ -16,6 +16,30 @@ auth.signInAnonymously().catch(console.error);
 
 const IMGBB_API_KEY = "2e6555f84f2cba4982c98e35ff987554";
 
+// NSFWJS Model Loading (Load once, use everywhere)
+let nsfwModel = null;
+async function getNsfwModel() {
+    if (nsfwModel) return nsfwModel;
+    try {
+        // Dynamically load the NSFWJS library
+        await new Promise((resolve, reject) => {
+            const script = document.createElement('script');
+            script.src = 'https://cdn.jsdelivr.net/npm/nsfwjs@2.4.2/dist/nsfwjs.min.js';
+            script.onload = resolve;
+            script.onerror = reject;
+            document.head.appendChild(script);
+        });
+        // Load the model (uses ~4MB, cached by browser)
+        nsfwModel = await nsfwjs.load('/base64/');
+        console.log('NSFWJS model loaded');
+    } catch (e) {
+        console.warn('NSFWJS failed to load, skipping checks:', e);
+    }
+    return nsfwModel;
+}
+// Start loading the model in the background
+getNsfwModel();
+
 // ----- Bad Word Filter -----
 const badWords = [
   'fuck', 'shit', 'ass', 'bitch', 'bastard', 'dick', 'piss', 'pussy', 'motherfucker', 'cunt', 'asshole', 'jerk', 'sex', 'niggar',
