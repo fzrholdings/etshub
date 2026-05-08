@@ -62,6 +62,14 @@ async function uploadImage(file) {
   return data.data.url;
 }
 
+// ----- Make URLs clickable -----
+function linkifyText(text) {
+  // Assumes text is already HTML‑escaped (no < > etc.)
+  // Match URLs and wrap in anchor tags
+  const urlRegex = /https?:\/\/[^\s<]+/gi;
+  return text.replace(urlRegex, url => `<a href="${url}" target="_blank" rel="noopener noreferrer">${url}</a>`);
+}
+
 // ---- Post Functions ----
 async function createPost() {
   const btn = document.getElementById('postButton');
@@ -244,7 +252,7 @@ function loadPosts() {
             </div>
           </div>
         </div>
-        <div class="post-content">${post.content ? filterBadWords(escapeHtml(post.content)) : ''}</div>
+        <div class="post-content">${post.content ? linkifyText(filterBadWords(escapeHtml(post.content))) : ''}</div>
         <div class="edit-area" style="display:none;">
           <textarea></textarea>
           <div class="edit-actions">
@@ -371,7 +379,7 @@ function renderCommentNode(postId, node, depth, container) {
   div.style.marginLeft = depth>0 ? '20px' : '0';
   div.innerHTML = `
     <div class="comment-body">
-      <strong>${escapeHtml(node.nickname||'Anon')}:</strong> <span class="comment-text">${filterBadWords(escapeHtml(node.text))}</span>
+      <strong>${escapeHtml(node.nickname||'Anon')}:</strong> <span class="comment-text">${linkifyText(filterBadWords(escapeHtml(node.text)))}</span>
       <div class="cm-reaction-wrapper">
         <button class="cm-like-btn">${btnEmoji}<span>${btnText}</span>${countStr}</button>
         <div class="cm-reaction-picker">
