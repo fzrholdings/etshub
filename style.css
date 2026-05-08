@@ -124,22 +124,73 @@ body {
     border: 1px solid #222;
 }
 
-/* ===== Reactions ===== */
-.reactions {
-    display: flex;
-    gap: 8px;
-    margin-top: 4px;
+/* Reaction Wrapper */
+.reaction-wrapper {
+  position: relative;
+  display: inline-flex;
+  margin-top: 6px;
 }
-.reactions button {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    color: #ccc;
-    /* existing styles remain */
+.like-btn {
+  background: #111;
+  border: 1px solid #2a2a2a;
+  color: #ccc;
+  padding: 6px 16px;
+  border-radius: 20px;
+  cursor: pointer;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: background 0.2s, color 0.2s;
 }
-.reactions button:hover {
-    color: #fff; /* icon and text white on hover */
+.like-btn:hover {
+  background: #1f1f1f;
+  color: #fff;
 }
+/* Reaction Picker (hidden by default, shown on wrapper hover) */
+.reaction-picker {
+  position: absolute;
+  bottom: 110%;
+  left: 0;
+  display: flex;
+  gap: 6px;
+  background: #0a0a0a;
+  border: 1px solid #2a2a2a;
+  border-radius: 24px;
+  padding: 8px 12px;
+  box-shadow: 0 8px 20px rgba(0,0,0,0.8);
+  opacity: 0;
+  transform: scale(0.6) translateY(10px);
+  pointer-events: none;
+  transition: opacity 0.25s cubic-bezier(0,0,0.2,1), transform 0.25s cubic-bezier(0,0,0.2,1);
+  z-index: 10;
+  white-space: nowrap;
+}
+.reaction-wrapper:hover .reaction-picker {
+  opacity: 1;
+  transform: scale(1) translateY(0);
+  pointer-events: auto;
+}
+/* Reaction option buttons */
+.reaction-option {
+  background: none;
+  border: none;
+  font-size: 24px;
+  cursor: pointer;
+  padding: 4px;
+  transition: transform 0.2s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+  line-height: 1;
+}
+.reaction-option:hover {
+  transform: scale(1.4);
+}
+/* Staggered animation for emojis on hover */
+.reaction-wrapper:hover .reaction-option:nth-child(1) { transition-delay: 0.05s; }
+.reaction-wrapper:hover .reaction-option:nth-child(2) { transition-delay: 0.1s; }
+.reaction-wrapper:hover .reaction-option:nth-child(3) { transition-delay: 0.15s; }
+.reaction-wrapper:hover .reaction-option:nth-child(4) { transition-delay: 0.2s; }
+.reaction-wrapper:hover .reaction-option:nth-child(5) { transition-delay: 0.25s; }
+.reaction-wrapper:hover .reaction-option:nth-child(6) { transition-delay: 0.3s; }
 
 /* ===== Comments Section ===== */
 .comments {
