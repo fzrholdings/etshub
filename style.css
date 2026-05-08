@@ -774,3 +774,179 @@ async function toggleJoinConvoy(convoyId) {
 .convoy-route-img { width: 100%; max-height: 200px; object-fit: cover; border-radius: 8px; margin: 8px 0; border: 1px solid #2a2a2a; }
 .participant-list { margin-top: 8px; font-size: 13px; color: #ccc; }
 .participant-list strong { color: #fff; }
+
+              /* ===== Convoy Planner Styles (Black & White Theme) ===== */
+.convoy-create {
+    background: #0a0a0a;
+    border: 1px solid #2a2a2a;
+    border-radius: 16px;
+    padding: 20px;
+    margin-bottom: 20px;
+}
+.convoy-create h3 {
+    color: #fff;
+    margin-bottom: 16px;
+    font-size: 18px;
+    font-weight: 600;
+}
+.convoy-create input,
+.convoy-create select,
+.convoy-create textarea {
+    width: 100%;
+    background: #000;
+    border: 1px solid #333;
+    border-radius: 10px;
+    padding: 10px 14px;
+    color: #fff;
+    font-size: 14px;
+    font-family: inherit;
+    margin-bottom: 10px;
+    outline: none;
+    transition: border-color 0.2s;
+    box-sizing: border-box;
+}
+.convoy-create input:focus,
+.convoy-create select:focus,
+.convoy-create textarea:focus {
+    border-color: #fff;
+}
+.convoy-create select {
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23aaa' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 10px center;
+    padding-right: 30px;
+}
+.form-row {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 10px;
+}
+.form-row input,
+.form-row select {
+    flex: 1;
+    margin-bottom: 0;
+}
+.dlc-checkboxes {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 10px;
+}
+.dlc-label {
+    color: #aaa;
+    font-size: 13px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    cursor: pointer;
+    background: #111;
+    padding: 4px 10px;
+    border-radius: 8px;
+    border: 1px solid #2a2a2a;
+}
+.dlc-label input {
+    margin: 0;
+    width: auto;
+    background: none;
+    border: none;
+    padding: 0;
+}
+.convoy-create button {
+    background: #fff;
+    color: #000;
+    border: none;
+    padding: 10px 24px;
+    border-radius: 10px;
+    font-weight: 600;
+    font-size: 14px;
+    cursor: pointer;
+    transition: background 0.2s, transform 0.1s;
+    margin-top: 8px;
+}
+.convoy-create button:hover {
+    background: #e0e0e0;
+    transform: scale(1.02);
+}
+
+/* Convoy Search */
+.convoy-search {
+    margin-bottom: 12px;
+}
+.convoy-search input {
+    width: 100%;
+    padding: 10px 14px;
+    background: #000;
+    border: 1px solid #333;
+    border-radius: 10px;
+    color: #fff;
+    font-size: 14px;
+    outline: none;
+}
+
+/* Convoy Card */
+.convoy-card {
+    background: #0a0a0a;
+    border: 1px solid #2a2a2a;
+    border-radius: 12px;
+    padding: 16px;
+    margin-bottom: 12px;
+}
+.convoy-title {
+    font-size: 18px;
+    font-weight: 700;
+    color: #fff;
+    margin-bottom: 8px;
+}
+.convoy-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-bottom: 8px;
+    font-size: 13px;
+    color: #aaa;
+}
+.convoy-meta span {
+    background: #111;
+    padding: 2px 8px;
+    border-radius: 4px;
+    border: 1px solid #2a2a2a;
+    font-size: 12px;
+}
+.convoy-desc {
+    font-size: 14px;
+    color: #ddd;
+    margin-bottom: 10px;
+}
+.convoy-route-img {
+    width: 100%;
+    max-height: 200px;
+    object-fit: cover;
+    border-radius: 8px;
+    margin: 8px 0;
+    border: 1px solid #2a2a2a;
+    cursor: pointer;
+}
+.convoy-join-btn {
+    background: #fff;
+    color: #000;
+    border: none;
+    padding: 6px 16px;
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: 0.2s;
+    font-size: 13px;
+}
+.convoy-join-btn.joined {
+    background: #238636;
+    color: #fff;
+}
+.convoy-join-btn:hover {
+    opacity: 0.8;
+}
+.convoy-participants {
+    margin-top: 8px;
+    font-size: 13px;
+    color: #aaa;
+}
