@@ -902,36 +902,62 @@ body {
 }
 
 /* Active reaction button (user reacted) */
-.like-btn.reacted {
+.like-btn, .cm-like-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: #111;
+  border: 1px solid #2a2a2a;
+  color: #ccc;
+  padding: 6px 12px;
+  border-radius: 20px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: background 0.2s, color 0.2s;
+  line-height: 1;
+}
+.like-btn:hover, .cm-like-btn:hover {
+  background: #1f1f1f;
+  color: #fff;
+}
+.like-btn.reacted, .cm-like-btn.reacted {
   background: #1a3a5c;
   border-color: #58a6ff;
   color: #58a6ff;
-}
-.like-btn.reacted:hover {
-  background: #1a3a5c;
 }
 .reaction-count {
   font-size: 13px;
   margin-left: 2px;
 }
 
-/* Comment reaction active */
-.cm-like-btn.reacted {
-  background: #1a3a5c;
-  border-color: #58a6ff;
-  color: #58a6ff;
+/* Comment body layout fix */
+.comment-body {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: #ddd;
 }
-.cm-like-btn.reacted:hover {
-  background: #1a3a5c;
+.comment-body strong {
+  color: #fff;
+  margin-right: 4px;
+  font-size: 13px;
+  white-space: nowrap;
+}
+.comment-body .comment-text {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.comment-body .cm-reaction-wrapper,
+.comment-body .reply-toggle,
+.comment-body .comment-actions {
+  flex-shrink: 0; /* prevent wrapping */
 }
 
-.reaction-option small {
-  font-size: 10px;
-  color: #aaa;
+/* Compact Comment Button */
+.cm-menu-btn {
+  font-size: 14px;
+  padding: 2px 6px;
   margin-left: 2px;
-}
-.cm-reaction-picker .reaction-option small {
-  font-size: 9px;
-  color: #aaa;
-  margin-left: 1px;
 }
