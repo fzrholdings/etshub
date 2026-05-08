@@ -346,11 +346,12 @@ body {
 /* ===== Custom Confirm Modal ===== */
 .modal-overlay {
     position: fixed; top:0; left:0; width:100%; height:100%;
-    background: rgba(0,0,0,0.8); display:flex; align-items:center; justify-content:center;
+    background: rgba(0,0,0,0.85); /* අඳුරු overlay */
+    display:flex; align-items:center; justify-content:center;
     z-index:1000;
 }
 .modal-box {
-    background: #0a0a0a; border:1px solid #2a2a2a; border-radius:16px; padding:24px;
+    background: #111; border:1px solid #333; border-radius:16px; padding:24px;
     max-width:360px; text-align:center; color:#fff;
 }
 .modal-box p { margin-bottom:20px; font-size:15px; }
@@ -364,10 +365,10 @@ body {
 .confirm-btn { background:#e94560; color:#fff; }
 .confirm-btn:hover { background:#c23152; }
 
-/* ===== Highlight Animation for Deep Link ===== */
+/* ===== Post Highlight Animation (Share Link Click) ===== */
 @keyframes highlightFade {
-    0% { background-color: #222; border-color: #fff; }
-    100% { background-color: transparent; border-color: #222; }
+    0% { background-color: #222; border: 2px solid #fff; }
+    100% { background-color: transparent; border: 1px solid #222; }
 }
 .post.highlight {
     animation: highlightFade 2s ease-out;
