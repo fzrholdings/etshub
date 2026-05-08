@@ -103,53 +103,57 @@ function loadPosts() {
       const btnText = userReactType ? userReactType.charAt(0).toUpperCase()+userReactType.slice(1) : (totalReactions>0?top.charAt(0).toUpperCase()+top.slice(1):'Like');
       const countStr = totalReactions>0?' · '+totalReactions:'';
 
+      // මෙතන duplicate නැති බව තහවුරු කරන්න
       const div = document.createElement('div');
       div.className = 'post';
-      const div = document.createElement('div');
-div.className = 'post';
-div.setAttribute('data-post-id', postId);
-div.innerHTML = `
-  <div class="post-header">
-    <div class="post-header-info">
-      <strong>${escapeHtml(post.nickname)}</strong>
-      <small>${post.timestamp?.toDate().toLocaleString()||'Just now'}</small>
-    </div>
-    <div class="post-actions">
-      <button onclick="togglePostMenu('${postId}')" class="menu-btn">⋮</button>
-      <div class="post-menu" id="menu-${postId}" style="display:none;">
-        <button onclick="sharePost('${escapeHtml(post.content || '')}')">Share</button>
-        ${post.nickname === getAnonymousName() ? `
-          <button onclick="editPost('${postId}')">Edit</button>
-          <button onclick="deletePost('${postId}')">Delete</button>
-        ` : ''}
-      </div>
-    </div>
-  </div>
-  <div class="post-content">${post.content ? escapeHtml(post.content) : ''}</div>
-  <div class="edit-area" style="display:none;">
-    <textarea></textarea>
-    <div class="edit-actions">
-      <button class="cancel-edit-btn">Cancel</button>
-      <button class="save-edit-btn">Save</button>
-    </div>
-  </div>
-  ${(post.imageUrls && post.imageUrls.length > 0) ? post.imageUrls.map(url => `<img src="${escapeHtml(url)}">`).join('') : ''}
-  ${(!post.imageUrls || post.imageUrls.length === 0) && post.imageUrl ? `<img src="${escapeHtml(post.imageUrl)}">` : ''}
-  <div class="reaction-wrapper">
-    <button class="like-btn">${btnEmoji} <span>${btnText}</span>${countStr}</button>
-    <div class="reaction-picker">
-      ${reactionTypes.map(t=>`<button class="reaction-option" onclick="event.stopPropagation(); reactPost('${postId}','${t}')">${emojiMap[t]}</button>`).join('')}
-    </div>
-  </div>
-  <button class="comment-toggle-btn" onclick="toggleCommentBox('${postId}')">💬 Comment</button>
-  <div class="comments" id="comments-${postId}" style="display:none;">
-    <div class="comments-list" id="commentsList-${postId}"></div>
-    <div class="top-reply-box">
-      <input type="text" id="commentInput-${postId}" placeholder="Comment එකක්...">
-      <button class="cm-send-btn" onclick="addComment('${postId}')">Send</button>
-    </div>
-  </div>
-`;
+      div.setAttribute('data-post-id', postId);
+      div.innerHTML = `
+        <div class="post-header">
+          <div class="post-header-info">
+            <strong>${escapeHtml(post.nickname)}</strong>
+            <small>${post.timestamp?.toDate().toLocaleString()||'Just now'}</small>
+          </div>
+          <div class="post-actions">
+            <button onclick="togglePostMenu('${postId}')" class="menu-btn">⋮</button>
+            <div class="post-menu" id="menu-${postId}" style="display:none;">
+              <button onclick="sharePost('${escapeHtml(post.content || '')}')">Share</button>
+              ${post.nickname === getAnonymousName() ? `
+                <button onclick="editPost('${postId}')">Edit</button>
+                <button onclick="deletePost('${postId}')">Delete</button>
+              ` : ''}
+            </div>
+          </div>
+        </div>
+        <div class="post-content">${post.content ? escapeHtml(post.content) : ''}</div>
+        <div class="edit-area" style="display:none;">
+          <textarea></textarea>
+          <div class="edit-actions">
+            <button class="cancel-edit-btn">Cancel</button>
+            <button class="save-edit-btn">Save</button>
+          </div>
+        </div>
+        ${(post.imageUrls && post.imageUrls.length > 0) ? post.imageUrls.map(url => `<img src="${escapeHtml(url)}">`).join('') : ''}
+        ${(!post.imageUrls || post.imageUrls.length === 0) && post.imageUrl ? `<img src="${escapeHtml(post.imageUrl)}">` : ''}
+        <div class="reaction-wrapper">
+          <button class="like-btn">${btnEmoji} <span>${btnText}</span>${countStr}</button>
+          <div class="reaction-picker">
+            ${reactionTypes.map(t=>`<button class="reaction-option" onclick="event.stopPropagation(); reactPost('${postId}','${t}')">${emojiMap[t]}</button>`).join('')}
+          </div>
+        </div>
+        <button class="comment-toggle-btn" onclick="toggleCommentBox('${postId}')">💬 Comment</button>
+        <div class="comments" id="comments-${postId}" style="display:none;">
+          <div class="comments-list" id="commentsList-${postId}"></div>
+          <div class="top-reply-box">
+            <input type="text" id="commentInput-${postId}" placeholder="Comment එකක්...">
+            <button class="cm-send-btn" onclick="addComment('${postId}')">Send</button>
+          </div>
+        </div>
+      `;
+      container.appendChild(div);
+      loadComments(postId);
+    });
+  });
+}
 
 // ---- Toggle Reaction for Posts ----
 async function reactPost(postId, type) {
