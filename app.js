@@ -279,6 +279,7 @@ function loadPosts() {
       `;
       div.dataset.searchText = (post.content + ' ' + post.nickname).toLowerCase();
       container.appendChild(div);
+      renderLinkPreviews(div, postId); // async, no need to await
       loadComments(postId);
     });
 
@@ -787,6 +788,71 @@ function playNotificationSound() {
 
 // Unlock audio on first user click anywhere in the document
 document.addEventListener('click', unlockAudio, { once: true });
+
+// ----- Link Preview -----
+const linkPreviewCache = {}; // in-memory cache
+
+// Extract URLs from text
+function extractUrls(text) {
+  const urlRegex = /https?:\/\/[^\s<]+/gi;
+  const matches = text.match(urlRegex);
+  return matches ? Array.from(new Set(matches)) : [];
+}
+
+// Fetch link preview from Worker
+async function fetchLinkPreview(url) {
+  if (linkPreviewCache[url]) return linkPreviewCache[url];
+
+  try {
+    const res = await fetch(`/api/link-preview?url=${encodeURIComponent(url)}`);
+    const data = await res.json();
+    if (data.error) return null;
+    linkPreviewCache[url] = data;
+    return data;
+  } catch (e) {
+    console.warn('Link preview fetch failed:', e);
+    return null;
+  }
+}
+
+// Render link preview cards for a post div
+async function renderLinkPreviews(postDiv, postId) {
+  // Get post content from the div
+  const contentDiv = postDiv.querySelector('.post-content');
+  if (!contentDiv) return;
+  const text = contentDiv.textContent || '';
+  const urls = extractUrls(text);
+  if (urls.length === 0) return;
+
+  // Create container for previews
+  let previewContainer = postDiv.querySelector('.link-previews');
+  if (!previewContainer) {
+    previewContainer = document.createElement('div');
+    previewContainer.className = 'link-previews';
+    contentDiv.after(previewContainer);
+  }
+
+  for (const url of urls) {
+    if (previewContainer.querySelector(`[data-url="${encodeURIComponent(url)}"]`)) continue; // already shown
+    const preview = await fetchLinkPreview(url);
+    if (!preview) continue;
+
+    const card = document.createElement('div');
+    card.className = 'link-card';
+    card.setAttribute('data-url', url);
+    card.innerHTML = `
+      <a href="${url}" target="_blank" rel="noopener noreferrer">
+        ${preview.image ? `<div class="link-card-img"><img src="${escapeHtml(preview.image)}" alt="" onerror="this.style.display='none'"></div>` : ''}
+        <div class="link-card-body">
+          <div class="link-card-title">${escapeHtml(preview.title || url)}</div>
+          ${preview.description ? `<div class="link-card-desc">${escapeHtml(preview.description)}</div>` : ''}
+          <div class="link-card-url">${new URL(url).hostname}</div>
+        </div>
+      </a>
+    `;
+    previewContainer.appendChild(card);
+  }
+}
 
 // Init
 loadPosts();
