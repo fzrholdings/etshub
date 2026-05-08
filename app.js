@@ -260,8 +260,8 @@ function loadPosts() {
               ${post.nickname === getAnonymousName() ? `
                 <button onclick="editPost('${postId}')">Edit</button>
                 <button onclick="deletePost('${postId}')">Delete</button>
-                ${isAdmin() ? `<button onclick="adminDeletePost('${postId}')">🗑️ Delete (Admin)</button>` : ''}
               ` : ''}
+              ${isAdmin() ? `<button onclick="adminDeletePost('${postId}')">🗑️ Delete (Admin)</button>` : ''}
             </div>
           </div>
         </div>
@@ -972,9 +972,9 @@ async function createConvoy() {
       routeImage: routeImageUrl,
       type,
       creatorName: getAnonymousName(),
-      participants: {}
+      participants: {},
+      recurring: document.getElementById('convoyRecurring').value
     });
-    recurring: document.getElementById('convoyRecurring').value
     // Clear form
     document.getElementById('convoyTitle').value = '';
     document.getElementById('convoyServer').value = '';
@@ -1208,25 +1208,6 @@ function handleRecurring() {
 // ========== Admin Mode ==========
 const ADMIN_SESSION_KEY = 'etshub_admin_session';
 
-async function promptAdminPassword() {
-  const password = prompt('Enter admin password:');
-  if (!password) return;
-  const formData = new FormData();
-  formData.append('password', password);
-  try {
-    const res = await fetch('/api/admin', { method:'POST', body:formData });
-    const data = await res.json();
-    if (data.success) {
-      localStorage.setItem(ADMIN_SESSION_KEY, 'true');
-      showToast('🔓 Admin mode activated');
-      // Reload to show admin UI
-      location.reload();
-    } else {
-      alert('Wrong password!');
-    }
-  } catch(e) { alert('Error connecting to admin service'); }
-}
-
 function isAdmin() {
   return localStorage.getItem(ADMIN_SESSION_KEY) === 'true';
 }
@@ -1236,24 +1217,12 @@ function logoutAdmin() {
   location.reload();
 }
 
-// Init
-loadPosts();
-
-// Developer only: access convoy tab via ?tab=convoys
-(function() {
-  const params = new URLSearchParams(window.location.search);
-  if (params.get('tab') === 'convoys') {
-    // Hide wall, show convoys and set active tab styling
-    document.getElementById('wallContainer').style.display = 'none';
-    const convoyContainer = document.getElementById('convoysContainer');
-    if (convoyContainer) convoyContainer.style.display = 'block';
-    // Also set the active tab button style if the button was present (but we removed it)
-    loadConvoys();
+function checkAdminPanel() {
+  if (isAdmin()) {
+    const panel = document.getElementById('adminPanel');
+    if (panel) panel.style.display = 'block';
   }
-})();
-
-// ========== Admin Mode ==========
-const ADMIN_SESSION_KEY = 'etshub_admin_session';
+}
 
 async function promptAdminPassword() {
   const password = prompt('Enter admin password:');
@@ -1275,35 +1244,16 @@ async function promptAdminPassword() {
   }
 }
 
-function isAdmin() {
-  return localStorage.getItem(ADMIN_SESSION_KEY) === 'true';
-}
-
-function logoutAdmin() {
-  localStorage.removeItem(ADMIN_SESSION_KEY);
-  location.reload();
-}
-
-function checkAdminPanel() {
-  if (isAdmin()) {
-    const panel = document.getElementById('adminPanel');
-    if (panel) panel.style.display = 'block';
-  }
-}
-
-// Admin delete post (override ownership)
 async function adminDeletePost(postId) {
   if (!confirm('Admin: permanently delete this post?')) return;
   await deletePostInternal(postId); // reuse internal delete (no confirm)
 }
 
-// Admin delete comment
 async function adminDeleteComment(postId, commentId) {
   if (!confirm('Admin: delete this comment?')) return;
   await db.collection("posts").doc(postId).collection("comments").doc(commentId).delete();
 }
 
-// Load reported posts (posts with at least 1 report)
 async function loadReportedPosts() {
   const container = document.getElementById('reportedPostsList');
   container.innerHTML = 'Loading...';
@@ -1326,5 +1276,17 @@ async function loadReportedPosts() {
   if (container.innerHTML === '') container.innerHTML = '<p style="color:#aaa;">No reported posts.</p>';
 }
 
-// Check admin panel on load
+// Init
+loadPosts();
 checkAdminPanel();
+
+// Developer only: access convoy tab via ?tab=convoys
+(function() {
+  const params = new URLSearchParams(window.location.search);
+  if (params.get('tab') === 'convoys') {
+    document.getElementById('wallContainer').style.display = 'none';
+    const convoyContainer = document.getElementById('convoysContainer');
+    if (convoyContainer) convoyContainer.style.display = 'block';
+    loadConvoys();
+  }
+})();
