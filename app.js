@@ -16,6 +16,25 @@ auth.signInAnonymously().catch(console.error);
 
 const IMGBB_API_KEY = "2e6555f84f2cba4982c98e35ff987554";
 
+// ----- Bad Word Filter -----
+const badWords = [
+  // English common bad words
+  'fuck', 'shit', 'ass', 'bitch', 'bastard', 'dick', 'piss', 'pussy', 'motherfucker', 'cunt', 'asshole', 'jerk', 'sex', 'niggar'
+  // Sinhala bad words (common)
+  'හුත්‍ත', 'පක', 'වේස', 'කැරි', 'බල්ල', 'පයිය', 'හුත්තිගෙ', 'වේසිගෙ', 'අවජාතක', 'පකයා', 'හුත්තා', 'හුත්ති', 'හුකලා', 'හුකනවා', 'හුකපන්', 'බහුකාපන්', 'වේසි', 'වේසාවො', 'පොන්නයා', 'බැල්ලි', 'බිජ්ජ', 'කැරියා', 'කැරියද', 'කැරියෙක්', 'හුත්තෙක්', 'වේසියක්', 'පකෙක්', 'පකයෙක්'
+'huththa', 'paka', 'wesa', 'vesa', 'kari', 'balla', 'paiya', 'payya', 'huththige', ''hutta', 'huttige', 'wesige', 'vesige', 'awajathaka', 'avajathaka', 'pakaya', 'hutti', 'huththi', 'hukapan', 'bahukapan', 'wesi', 'vesi', 'wesawo', 'vesavo', 'wesavo', 'vesawo', 'ponnaya', 'pnnya', 'balli', 'bijja', 'kariya', 'kariyek', 'kariyada', 'kariyekda', 'huttek', 'huththek', 'pakek', 'pakayek' 
+  // Add more as needed
+];
+
+function filterBadWords(text) {
+  let filtered = text;
+  badWords.forEach(word => {
+    const regex = new RegExp(`\\b${word}\\b`, 'gi'); // word boundary, case‑insensitive
+    filtered = filtered.replace(regex, '***');
+  });
+  return filtered;
+}
+
 // Random Names
 const adjectives = ["Silent","Wild","Phantom","Turbo","Mystic","Rogue","Blazing","Iron","Dark","Cosmic","Neon","Storm","Shadow","Atomic","Frozen","Crimson","Rapid","Vortex","Zen","Lunar"];
 const nouns = ["Wolf","Eagle","Panda","Tiger","Falcon","Knight","Rider","Ghost","Drift","Beast","Hawk","Viper","Legend","Raven","Comet","Phoenix","Joker","Warden","Pilot","Nomad"];
@@ -183,7 +202,7 @@ function loadPosts() {
 </div>
           </div>
         </div>
-        <div class="post-content">${post.content ? escapeHtml(post.content) : ''}</div>
+        <div class="post-content">${post.content ? filterBadWords(escapeHtml(post.content)) : ''}</div>
         <div class="edit-area" style="display:none;">
           <textarea></textarea>
           <div class="edit-actions">
@@ -319,7 +338,7 @@ function renderCommentNode(postId, node, depth, container) {
   div.style.marginLeft = depth>0 ? '20px' : '0';
   div.innerHTML = `
     <div class="comment-body">
-      <strong>${escapeHtml(node.nickname||'Anon')}:</strong> <span class="comment-text">${escapeHtml(node.text)}</span>
+      <strong>${escapeHtml(node.nickname||'Anon')}:</strong> <span class="comment-text">${filterBadWords(escapeHtml(node.text))}</span>
       <div class="cm-reaction-wrapper">
         <button class="cm-like-btn">${btnEmoji}<span>${btnText}</span>${countStr}</button>
         <div class="cm-reaction-picker">
