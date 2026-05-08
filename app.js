@@ -133,8 +133,18 @@ function loadPosts() {
             <button class="save-edit-btn">Save</button>
           </div>
         </div>
-        ${(post.imageUrls && post.imageUrls.length > 0) ? post.imageUrls.map(url => `<img src="${escapeHtml(url)}">`).join('') : ''}
-        ${(!post.imageUrls || post.imageUrls.length === 0) && post.imageUrl ? `<img src="${escapeHtml(post.imageUrl)}">` : ''}
+       ${(post.imageUrls && post.imageUrls.length > 0) ? `
+  <div class="image-collage ${post.imageUrls.length === 1 ? 'single' : ''}">
+    ${post.imageUrls.map((url, index) => `
+      <img src="${escapeHtml(url)}" alt="image" onclick="openLightbox('${postId}', ${index})">
+    `).join('')}
+  </div>
+` : ''}
+${(!post.imageUrls || post.imageUrls.length === 0) && post.imageUrl ? `
+  <div class="image-collage single">
+    <img src="${escapeHtml(post.imageUrl)}" alt="image" onclick="openLightbox('${postId}', 0)">
+  </div>
+` : ''}
         <div class="reaction-wrapper">
           <button class="like-btn">${btnEmoji} <span>${btnText}</span>${countStr}</button>
           <div class="reaction-picker">
@@ -556,6 +566,47 @@ function showToast(msg) {
         toast.classList.remove('show');
         setTimeout(() => toast.remove(), 300);
     }, 2000);
+}
+
+// ---- Image Lightbox ----
+let currentLightboxPostId = null;
+let currentLightboxIndex = 0;
+let lightboxImages = [];
+
+function openLightbox(postId, index) {
+    // Get the post's images
+    const postDiv = document.getElementById('post-' + postId);
+    if (!postDiv) return;
+    const images = [];
+    // collect all image URLs from the collage
+    postDiv.querySelectorAll('.image-collage img').forEach(img => {
+        images.push(img.src);
+    });
+    if (images.length === 0) return;
+    lightboxImages = images;
+    currentLightboxPostId = postId;
+    currentLightboxIndex = index;
+    showLightboxImage();
+    document.getElementById('lightbox').style.display = 'flex';
+}
+
+function closeLightbox() {
+    document.getElementById('lightbox').style.display = 'none';
+}
+
+function changeLightboxImage(direction) {
+    const newIndex = currentLightboxIndex + direction;
+    if (newIndex >= 0 && newIndex < lightboxImages.length) {
+        currentLightboxIndex = newIndex;
+        showLightboxImage();
+    }
+}
+
+function showLightboxImage() {
+    const img = document.getElementById('lightboxImg');
+    const counter = document.getElementById('lightboxCounter');
+    img.src = lightboxImages[currentLightboxIndex];
+    counter.textContent = (currentLightboxIndex + 1) + ' / ' + lightboxImages.length;
 }
 
 loadPosts();
