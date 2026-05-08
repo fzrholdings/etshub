@@ -866,3 +866,37 @@ body {
 .cm-menu { position: absolute; right: 0; top: 100%; background: #0a0a0a; border: 1px solid #2a2a2a; border-radius: 8px; padding: 4px; z-index: 25; display: flex; flex-direction: column; gap: 2px; min-width: 80px; display: none; }
 .cm-menu button { background: none; border: none; color: #ccc; padding: 4px 8px; text-align: left; font-size: 12px; cursor: pointer; border-radius: 4px; transition: 0.2s; }
 .cm-menu button:hover { background: #1f1f1f; color: #fff; }
+
+.comment-edit-area {
+  display: flex;
+  flex-direction: column;
+  margin-top: 4px;
+}
+.comment-edit-textarea {
+  width: 100%;
+  background: #000;
+  border: 1px solid #333;
+  border-radius: 6px;
+  padding: 6px 10px;
+  color: #fff;
+  font-size: 13px;
+  resize: vertical;
+  min-height: 40px;
+  outline: none;
+}
+.cancel-comment-edit-btn,
+.save-comment-edit-btn {
+  background: #fff;
+  color: #000;
+  border: none;
+  padding: 4px 12px;
+  border-radius: 6px;
+  font-weight: 600;
+  font-size: 12px;
+  cursor: pointer;
+  transition: 0.2s;
+}
+.cancel-comment-edit-btn:hover,
+.save-comment-edit-btn:hover {
+  background: #e0e0e0;
+}
