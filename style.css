@@ -479,3 +479,14 @@ body {
 .search-container input:focus {
     border-color: #fff;
 }
+
+/* ===== Post Button Disabled (Cooldown) ===== */
+#postButton:disabled {
+    background: #333;
+    color: #777;
+    cursor: not-allowed;
+    transform: none;
+}
+#postButton:disabled:hover {
+    background: #333;
+}
