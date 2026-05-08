@@ -44,21 +44,45 @@ async function uploadImage(file) {
 async function createPost() {
   const nickname = getAnonymousName();
   const content = document.getElementById('postContent').value.trim();
-  const fileInput = document.getElementById('imageInput');
-  if (!content && !fileInput.files[0]) return alert('Text හෝ image එකක් දාන්න!');
-  let imageUrl = null;
-  if (fileInput.files[0]) {
-    try { imageUrl = await uploadImage(fileInput.files[0]); } catch { alert('Upload fail'); return; }
+  
+  // Check if there's text or selected images
+  if (!content && selectedFiles.length === 0) {
+    return alert('Text එකක් හෝ image එකක් දාන්න!');
   }
+
+  let imageUrls = [];
+  
+  // Upload each selected file
+  if (selectedFiles.length > 0) {
+    try {
+      for (let file of selectedFiles) {
+        const url = await uploadImage(file);
+        imageUrls.push(url);
+      }
+    } catch (e) {
+      alert('Image upload failed! Try again.');
+      console.error(e);
+      return;
+    }
+  }
+
   try {
     await db.collection("posts").add({
-      nickname, content, imageUrl,
+      nickname,
+      content,
+      imageUrls,      // array of URLs (new)
+      imageUrl: null, // keep for backward compat (optional)
       timestamp: firebase.firestore.FieldValue.serverTimestamp(),
       reactions: { like:0, love:0, haha:0, wow:0, sad:0, angry:0 }
     });
+    // Reset form
     document.getElementById('postContent').value = '';
-    fileInput.value = '';
-  } catch (e) { console.error(e); alert('Post fail'); }
+    selectedFiles.length = 0; // clear array
+    renderPreviews(); // update previews (empty)
+  } catch (e) {
+    console.error('Post fail:', e);
+    alert('Post කිරීම අසාර්ථකයි.');
+  }
 }
 
 function loadPosts() {
@@ -84,7 +108,8 @@ function loadPosts() {
       div.innerHTML = `
         <div class="post-header"><strong>${escapeHtml(post.nickname)}</strong><small>${post.timestamp?.toDate().toLocaleString()||'Just now'}</small></div>
         ${post.content?`<div class="post-content">${escapeHtml(post.content)}</div>`:''}
-        ${post.imageUrl?`<img src="${escapeHtml(post.imageUrl)}">`:''}
+        ${(post.imageUrls && post.imageUrls.length > 0) ? post.imageUrls.map(url => `<img src="${escapeHtml(url)}">`).join('') : ''}
+${(!post.imageUrls || post.imageUrls.length === 0) && post.imageUrl ? `<img src="${escapeHtml(post.imageUrl)}">` : ''}
         <div class="reaction-wrapper">
           <button class="like-btn">${btnEmoji} <span>${btnText}</span>${countStr}</button>
           <div class="reaction-picker">
@@ -281,6 +306,65 @@ function toggleCommentBox(postId) {
 function toggleReplyBox(postId, commentId) {
   const div = document.getElementById(`replyBox-${postId}-${commentId}`);
   div.style.display = div.style.display === 'none' ? 'flex' : 'none';
+}
+
+// File selection handler
+const selectedFiles = []; // store File objects
+
+function handleFileSelect(fileList) {
+    // Filter by size & limit
+    const maxSize = 10 * 1024 * 1024; // 10MB
+    const newFiles = Array.from(fileList);
+    
+    // Check size limit and show errors
+    const oversized = newFiles.filter(f => f.size > maxSize);
+    if (oversized.length > 0) {
+        alert(`File(s) too large! Maximum 10MB each.\n${oversized.map(f=>f.name).join(', ')}`);
+        // Remove oversized
+        const validFiles = newFiles.filter(f => f.size <= maxSize);
+        // Clear the file input so user can reselect (we'll reconstruct DataTransfer)
+        document.getElementById('imageInput').value = ''; 
+        // We'll just add valid ones, but we can also let them reselect
+        // For simplicity, we'll only process valid files from this batch
+        addFiles(validFiles);
+    } else {
+        addFiles(newFiles);
+    }
+    // Clear the file input to allow re-selecting same file later
+    document.getElementById('imageInput').value = '';
+}
+
+function addFiles(files) {
+    // Enforce total max 3 images
+    if (selectedFiles.length + files.length > 3) {
+        alert('Maximum 3 images allowed!');
+        return;
+    }
+    selectedFiles.push(...files);
+    renderPreviews();
+}
+
+function renderPreviews() {
+    const container = document.getElementById('previewContainer');
+    container.innerHTML = '';
+    selectedFiles.forEach((file, index) => {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            const div = document.createElement('div');
+            div.className = 'preview-item';
+            div.innerHTML = `
+                <img src="${e.target.result}" alt="preview">
+                <button class="remove-preview" onclick="removeFile(${index})">&times;</button>
+            `;
+            container.appendChild(div);
+        };
+        reader.readAsDataURL(file);
+    });
+}
+
+function removeFile(index) {
+    selectedFiles.splice(index, 1);
+    renderPreviews();
 }
 
 loadPosts();
