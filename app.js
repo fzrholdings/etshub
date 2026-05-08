@@ -42,7 +42,7 @@ async function uploadImage(file) {
 
 // Create post
 async function createPost() {
-  const nickname = document.getElementById('nickname').value.trim() || 'Anonymous';
+  const nickname = getAnonymousName();
   const content = document.getElementById('postContent').value.trim();
   const fileInput = document.getElementById('imageInput');
   if (!content && !fileInput.files[0]) return alert('Text එකක් හෝ image එකක් දාන්න!');
