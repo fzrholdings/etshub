@@ -758,3 +758,19 @@ async function toggleJoinConvoy(convoyId) {
     showToast('Failed to update participation');
   }
 }
+
+.form-row { display: flex; gap: 10px; margin-bottom: 10px; }
+.form-row input, .form-row select { flex: 1; }
+.dlc-checkboxes { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 10px; }
+.dlc-label { color: #aaa; font-size: 13px; display: flex; align-items: center; gap: 4px; cursor: pointer; }
+.dlc-label input { margin: 0; }
+.convoy-search { margin-bottom: 12px; }
+.convoy-search input {
+    width: 100%; padding: 10px 14px; background: #000; border: 1px solid #333; border-radius: 10px;
+    color: #fff; font-size: 14px; outline: none;
+}
+.convoy-card .convoy-meta { display: flex; flex-wrap: wrap; gap: 8px; font-size: 13px; color: #aaa; }
+.convoy-meta span { background: #111; padding: 2px 8px; border-radius: 4px; }
+.convoy-route-img { width: 100%; max-height: 200px; object-fit: cover; border-radius: 8px; margin: 8px 0; border: 1px solid #2a2a2a; }
+.participant-list { margin-top: 8px; font-size: 13px; color: #ccc; }
+.participant-list strong { color: #fff; }
