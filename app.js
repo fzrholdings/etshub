@@ -897,11 +897,11 @@ async function checkUrlNSFW(urlStr) {
     const res = await fetch('/api/blocklist-check', { method:'POST', body: formData });
     if (!res.ok) throw new Error('Blocklist service failed');
     const data = await res.json();
-    return data.blocked === true; // true = NSFW
+    return data.blocked === true;
   } catch (e) {
     console.error('Blocklist check error:', e);
     showToast('⚠️ Link safety check failed. Post blocked.');
-    return true; // Safety: block post if service down
+    return true; // Fail safe: block if service down
   }
 }
 
