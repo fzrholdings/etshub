@@ -367,4 +367,21 @@ function removeFile(index) {
     renderPreviews();
 }
 
+// ----- Post Actions Menu -----
+function togglePostMenu(postId) {
+    const menu = document.getElementById('menu-'+postId);
+    if (!menu) return;
+    const isVisible = menu.style.display === 'block';
+    // Hide all menus first
+    document.querySelectorAll('.post-menu').forEach(m => m.style.display = 'none');
+    menu.style.display = isVisible ? 'none' : 'block';
+}
+
+// Close menus when clicking outside
+document.addEventListener('click', (e) => {
+    if (!e.target.closest('.post-actions')) {
+        document.querySelectorAll('.post-menu').forEach(m => m.style.display = 'none');
+    }
+});
+
 loadPosts();
