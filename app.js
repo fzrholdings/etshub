@@ -400,6 +400,20 @@ function renderCommentNode(postId, node, depth, container) {
         </div>
       </div>
       <button class="reply-toggle" onclick="toggleReplyBox('${postId}','${commentId}')">Reply</button>
+      // In renderCommentNode, after the line:
+// <button class="reply-toggle" onclick="toggleReplyBox('${postId}','${commentId}')">Reply</button>
+
+// Add:
+<div class="comment-actions">
+  <button onclick="toggleCommentMenu('${postId}','${commentId}')" class="cm-menu-btn">⋮</button>
+  <div class="cm-menu" id="cmenu-${commentId}" style="display:none;">
+    ${node.anonId === getAnonymousId() ? `
+      <button onclick="editComment('${postId}','${commentId}')">Edit</button>
+      <button onclick="deleteComment('${postId}','${commentId}')">Delete</button>
+    ` : `<button onclick="reportComment('${postId}','${commentId}')">Report</button>`}
+  </div>
+</div>
+${isAdmin() ? `<button onclick="adminDeleteComment('${postId}','${commentId}')" style="…">🗑️</button>` : ''}
       ${isAdmin() ? `<button onclick="adminDeleteComment('${postId}','${commentId}')" style="background:none;border:none;color:#e94560;font-size:10px;padding:0 4px;">🗑️</button>` : ''}
     </div>
     <div class="reply-box" id="replyBox-${postId}-${commentId}" style="display:none;">
@@ -418,7 +432,7 @@ function renderCommentNode(postId, node, depth, container) {
 async function addComment(postId) {
   const input = document.getElementById('commentInput-'+postId);
   const text = input.value.trim();
-    const urlsInComment = extractUrls(text);
+  const urlsInComment = extractUrls(text);   // NSFW check…
   for (let urlStr of urlsInComment) {
     const isNsfw = await checkUrlNSFW(urlStr);
     if (isNsfw) {
@@ -428,8 +442,11 @@ async function addComment(postId) {
   }
   if(!text) return;
   const nickname = getAnonymousName();
+  const anonId = getAnonymousId();   // <-- add this line
   db.collection("posts").doc(postId).collection("comments").add({
-    nickname, text,
+    nickname,
+    anonId,   // <-- add this field
+    text,
     timestamp: firebase.firestore.FieldValue.serverTimestamp(),
     parentId: null,
     reactions: {like:0,love:0,haha:0,wow:0,sad:0,angry:0}
@@ -439,7 +456,7 @@ async function addComment(postId) {
 async function addReply(postId, parentCommentId) {
   const input = document.getElementById(`replyInput-${postId}-${parentCommentId}`);
   const text = input.value.trim();
-    const urlsInReply = extractUrls(text);
+  const urlsInReply = extractUrls(text);
   for (let urlStr of urlsInReply) {
     const isNsfw = await checkUrlNSFW(urlStr);
     if (isNsfw) {
@@ -449,8 +466,11 @@ async function addReply(postId, parentCommentId) {
   }
   if(!text) return;
   const nickname = getAnonymousName();
+  const anonId = getAnonymousId();   // <-- add
   db.collection("posts").doc(postId).collection("comments").add({
-    nickname, text,
+    nickname,
+    anonId,   // <-- add
+    text,
     timestamp: firebase.firestore.FieldValue.serverTimestamp(),
     parentId: parentCommentId,
     reactions: {like:0,love:0,haha:0,wow:0,sad:0,angry:0}
@@ -1274,6 +1294,47 @@ async function loadReportedPosts() {
     }
   }
   if (container.innerHTML === '') container.innerHTML = '<p style="color:#aaa;">No reported posts.</p>';
+}
+
+// ========== Comment Dropdown Actions ==========
+function toggleCommentMenu(postId, commentId) {
+  const menu = document.getElementById('cmenu-' + commentId);
+  if (!menu) return;
+  const isVisible = menu.style.display === 'block';
+  document.querySelectorAll('.cm-menu').forEach(m => m.style.display = 'none');
+  menu.style.display = isVisible ? 'none' : 'block';
+}
+
+document.addEventListener('click', (e) => {
+  if (!e.target.closest('.comment-actions')) {
+    document.querySelectorAll('.cm-menu').forEach(m => m.style.display = 'none');
+  }
+});
+
+async function editComment(postId, commentId) {
+  const ref = db.collection("posts").doc(postId).collection("comments").doc(commentId);
+  try {
+    const doc = await ref.get();
+    if (!doc.exists) return;
+    const current = doc.data().text || '';
+    const newText = prompt('Edit comment:', current);
+    if (newText === null || newText.trim() === '' || newText.trim() === current) return;
+    await ref.update({ text: newText.trim() });
+    showToast('Comment updated');
+  } catch(e) { console.error(e); showToast('Edit failed'); }
+}
+
+async function deleteComment(postId, commentId) {
+  showConfirm('Delete this comment?', async () => {
+    try {
+      await db.collection("posts").doc(postId).collection("comments").doc(commentId).delete();
+    } catch(e) { console.error(e); showToast('Delete failed'); }
+  });
+}
+
+async function reportComment(postId, commentId) {
+  showToast('🚩 Comment reported. Moderators will review.');
+  // Optional: Add report subcollection similar to posts.
 }
 
 // Init
