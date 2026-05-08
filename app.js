@@ -1408,7 +1408,7 @@ async function reportComment(postId, commentId) {
   // Optional: Add report subcollection similar to posts.
 }
 
-// ========== Online Presence ==========
+// ========== Online Presence (Firestore, 30s interval) ==========
 const presenceRef = db.collection("presence");
 
 function updatePresence() {
@@ -1418,12 +1418,12 @@ function updatePresence() {
   }, { merge: true }).catch(() => {});
 }
 
-setInterval(updatePresence, 120000); // every 2 minutes
+// Update every 30 seconds
+setInterval(updatePresence, 30000);
 updatePresence(); // initial call
 
 function listenOnlineCount() {
-  const now = Date.now();
-  presenceRef.where("lastActive", ">", new Date(now - 120000)) // last 2 min
+  presenceRef.where("lastActive", ">", new Date(Date.now() - 40000)) // 40s window
     .onSnapshot(snap => {
       const count = snap.size;
       const el = document.getElementById('onlineCount');
