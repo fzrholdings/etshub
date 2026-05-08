@@ -195,8 +195,8 @@ function loadPosts() {
   db.collection("posts").orderBy("timestamp","desc").onSnapshot(snapshot => {
     const container = document.getElementById('postsContainer');
     container.innerHTML = '';
-    
-    // Play sound only for new posts (not initial load)
+
+    // Play sound only for new posts added after initial load
     if (initialLoadDone) {
       snapshot.docChanges().forEach(change => {
         if (change.type === 'added' && !change.doc.metadata.hasPendingWrites) {
@@ -740,53 +740,62 @@ function compressImage(file, maxWidth = 1200, maxHeight = 1200, quality = 0.8) {
   });
 }
 
-// ----- Notification Sound -----
-let audioCtx = null;
-let audioBuffer = null;
+// ----- Notification Sound (HTML Audio) -----
+let notificationAudio = null;
 
-async function initAudio() {
-  if (audioCtx) return;
-  try {
-    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    // Create a short pleasant "pop" sound programmatically
-    audioBuffer = await createPopSound(audioCtx);
-  } catch (e) {
-    console.warn('Audio init failed:', e);
+function generateBeepWavBase64() {
+  const sampleRate = 8000;
+  const duration = 0.1; // 100ms
+  const numSamples = Math.floor(sampleRate * duration);
+  const buffer = new ArrayBuffer(44 + numSamples);
+  const view = new DataView(buffer);
+
+  function writeString(view, offset, str) {
+    for (let i = 0; i < str.length; i++) view.setUint8(offset + i, str.charCodeAt(i));
   }
+
+  // WAV Header
+  writeString(view, 0, 'RIFF');
+  view.setUint32(4, 36 + numSamples, true);
+  writeString(view, 8, 'WAVE');
+  writeString(view, 12, 'fmt ');
+  view.setUint32(16, 16, true);    // Subchunk size
+  view.setUint16(20, 1, true);     // Audio format PCM
+  view.setUint16(22, 1, true);     // Mono
+  view.setUint32(24, sampleRate, true);
+  view.setUint32(28, sampleRate * 1, true); // Byte rate
+  view.setUint16(32, 1, true);     // Block align
+  view.setUint16(34, 8, true);     // Bits per sample
+  writeString(view, 36, 'data');
+  view.setUint32(40, numSamples, true);
+
+  // Audio data (descending tone beep)
+  for (let i = 0; i < numSamples; i++) {
+    const t = i / sampleRate;
+    const amplitude = Math.max(0, 1 - t / duration) * 0.6;
+    const sample = Math.sin(2 * Math.PI * 800 * t) * amplitude * 127 + 128;
+    view.setUint8(44 + i, Math.round(sample));
+  }
+
+  const bytes = new Uint8Array(buffer);
+  const binary = Array.from(bytes, byte => String.fromCharCode(byte)).join('');
+  return 'data:audio/wav;base64,' + btoa(binary);
 }
 
-async function createPopSound(ctx) {
-  const sampleRate = ctx.sampleRate;
-  const duration = 0.15; // 150ms
-  const length = Math.floor(sampleRate * duration);
-  const buffer = ctx.createBuffer(1, length, sampleRate);
-  const data = buffer.getChannelData(0);
-  
-  // Sine wave with fast decay for a subtle "pop" sound
-  for (let i = 0; i < length; i++) {
-    const t = i / sampleRate;
-    const freq = 800 + (200 * (1 - t / duration)); // descending tone
-    const amplitude = Math.max(0, 1 - (t / duration) * 1.5); // fast decay
-    data[i] = amplitude * Math.sin(2 * Math.PI * freq * t);
-  }
-  return buffer;
+function initAudio() {
+  if (notificationAudio) return;
+  notificationAudio = new Audio(generateBeepWavBase64());
+  notificationAudio.volume = 0.5;
 }
 
 function playNotificationSound() {
-  if (!audioCtx || !audioBuffer) return;
-  try {
-    // Resume context if suspended (autoplay policy)
-    if (audioCtx.state === 'suspended') {
-      audioCtx.resume();
-    }
-    const source = audioCtx.createBufferSource();
-    source.buffer = audioBuffer;
-    source.connect(audioCtx.destination);
-    source.start(0);
-  } catch (e) { /* ignore */ }
+  if (!notificationAudio) return;
+  notificationAudio.currentTime = 0;
+  // Detect paused state and play
+  notificationAudio.play().catch(() => {});
 }
 
-// Initialize audio on first user click anywhere
+// Initialize audio when user interacts first time
 document.addEventListener('click', initAudio, { once: true });
 
 // Init
