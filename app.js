@@ -972,6 +972,7 @@ async function createConvoy() {
       creatorName: getAnonymousName(),
       participants: {}
     });
+    recurring: document.getElementById('convoyRecurring').value
     // Clear form
     document.getElementById('convoyTitle').value = '';
     document.getElementById('convoyServer').value = '';
@@ -1004,6 +1005,7 @@ function loadConvoys() {
       allConvoysData.push({ id: convoyId, ...convoy });
     });
     renderConvoyCards(allConvoysData);
+    handleRecurring();
   });
 }
 
@@ -1175,6 +1177,31 @@ setInterval(() => {
     }
   });
 }, 30000); // check every 30 seconds
+
+// After loading convoys, auto-generate next instance for recurring past ones
+function handleRecurring() {
+  allConvoysData.forEach(async c => {
+    if (c.recurring === 'weekly' && c.datetime.toDate().getTime() < Date.now() && !c.recurrenceCreated) {
+      // Check if we already created the next occurrence
+      const existing = allConvoysData.find(ec => 
+        ec.title === c.title && 
+        ec.datetime.toDate().getTime() > Date.now() &&
+        ec.recurring === 'weekly'
+      );
+      if (!existing) {
+        const newDate = new Date(c.datetime.toDate().getTime() + 7 * 24 * 60 * 60 * 1000);
+        await db.collection("convoys").add({
+          ...c,
+          datetime: firebase.firestore.Timestamp.fromDate(newDate),
+          participants: {},
+          recurrenceCreated: true // flag to avoid loop
+        });
+        showToast(`📅 Next week's convoy "${c.title}" created automatically`);
+      }
+    }
+  });
+}
+// Call handleRecurring() after loadConvoys (inside onSnapshot after renderConvoyCards maybe)
 
 // Init
 loadPosts();
