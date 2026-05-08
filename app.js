@@ -400,20 +400,18 @@ function renderCommentNode(postId, node, depth, container) {
         </div>
       </div>
       <button class="reply-toggle" onclick="toggleReplyBox('${postId}','${commentId}')">Reply</button>
-      // In renderCommentNode, after the line:
-// <button class="reply-toggle" onclick="toggleReplyBox('${postId}','${commentId}')">Reply</button>
-
-// Add:
-<div class="comment-actions">
-  <button onclick="toggleCommentMenu('${postId}','${commentId}')" class="cm-menu-btn">⋮</button>
-  <div class="cm-menu" id="cmenu-${commentId}" style="display:none;">
-    ${node.anonId === getAnonymousId() ? `
-      <button onclick="editComment('${postId}','${commentId}')">Edit</button>
-      <button onclick="deleteComment('${postId}','${commentId}')">Delete</button>
-    ` : `<button onclick="reportComment('${postId}','${commentId}')">Report</button>`}
-  </div>
-</div>
-${isAdmin() ? `<button onclick="adminDeleteComment('${postId}','${commentId}')" style="…">🗑️</button>` : ''}
+      
+      <!-- Comment Dropdown Menu -->
+      <div class="comment-actions">
+        <button onclick="toggleCommentMenu('${postId}','${commentId}')" class="cm-menu-btn">⋮</button>
+        <div class="cm-menu" id="cmenu-${commentId}" style="display:none;">
+          ${node.anonId === getAnonymousId() ? `
+            <button onclick="editComment('${postId}','${commentId}')">Edit</button>
+            <button onclick="deleteComment('${postId}','${commentId}')">Delete</button>
+          ` : `<button onclick="reportComment('${postId}','${commentId}')">Report</button>`}
+        </div>
+      </div>
+      
       ${isAdmin() ? `<button onclick="adminDeleteComment('${postId}','${commentId}')" style="background:none;border:none;color:#e94560;font-size:10px;padding:0 4px;">🗑️</button>` : ''}
     </div>
     <div class="reply-box" id="replyBox-${postId}-${commentId}" style="display:none;">
