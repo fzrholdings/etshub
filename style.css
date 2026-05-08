@@ -1,190 +1,59 @@
-/* === Pitch Black & White Theme === */
-* {
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
-}
-
+/* === Pitch Black & White Theme (Final) === */
+* { margin:0; padding:0; box-sizing:border-box; }
 body {
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-    background: #000000;
-    color: #ffffff;
-    min-height: 100vh;
-    padding: 20px 10px;
-    -webkit-font-smoothing: antialiased;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background: #000; color: #fff; min-height:100vh; padding:20px 10px; -webkit-font-smoothing:antialiased;
 }
+#hub { max-width:650px; margin:0 auto; display:flex; flex-direction:column; gap:20px; }
 
-#hub {
-    max-width: 650px;
-    margin: 0 auto;
-    display: flex;
-    flex-direction: column;
-    gap: 20px;
-}
-
-/* ===== Post Box ===== */
+/* Post Box */
 .post-box {
-    background: #0a0a0a;
-    border: 1px solid #2a2a2a;
-    border-radius: 16px;
-    padding: 20px;
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-    transition: border-color 0.3s;
+  background: #0a0a0a; border:1px solid #2a2a2a; border-radius:16px; padding:20px;
+  display:flex; flex-direction:column; gap:12px; transition: border-color 0.3s;
 }
-.post-box:focus-within {
-    border-color: #555;
-}
-
-.post-box input[type="text"],
+.post-box:focus-within { border-color:#555; }
 .post-box textarea {
-    width: 100%;
-    background: #000;
-    border: 1px solid #333;
-    border-radius: 10px;
-    padding: 12px 14px;
-    color: #fff;
-    font-size: 14px;
-    font-family: inherit;
-    transition: border-color 0.2s;
-    outline: none;
-    resize: vertical;
+  width:100%; background:#000; border:1px solid #333; border-radius:10px; padding:12px 14px;
+  color:#fff; font-size:14px; font-family:inherit; outline:none; transition:border-color .2s; resize:vertical; min-height:60px;
 }
-.post-box input[type="text"]:focus,
-.post-box textarea:focus {
-    border-color: #fff;
-}
-.post-box textarea {
-    min-height: 60px;
-}
-.post-box input[type="file"] {
-    color: #aaa;
-    font-size: 13px;
-}
+.post-box textarea:focus { border-color:#fff; }
+.post-box input[type="file"] { color:#aaa; font-size:13px; }
 .post-box button {
-    align-self: flex-end;
-    background: #ffffff;
-    color: #000000;
-    border: none;
-    padding: 10px 24px;
-    border-radius: 10px;
-    font-weight: 600;
-    font-size: 14px;
-    cursor: pointer;
-    transition: background 0.2s, transform 0.1s;
-    letter-spacing: 0.3px;
+  align-self:flex-end; background:#fff; color:#000; border:none; padding:10px 24px; border-radius:10px;
+  font-weight:600; font-size:14px; cursor:pointer; transition: background .2s, transform .1s; letter-spacing:0.3px;
 }
-.post-box button:hover {
-    background: #e0e0e0;
-    transform: scale(1.02);
-}
-.post-box button:active {
-    transform: scale(0.98);
-}
+.post-box button:hover { background:#e0e0e0; transform:scale(1.02); }
+.post-box button:active { transform:scale(0.98); }
 
-/* ===== Individual Post ===== */
+/* Post */
 .post {
-    background: #0a0a0a;
-    border: 1px solid #222;
-    border-radius: 16px;
-    padding: 18px;
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-    transition: border-color 0.3s;
+  background: #0a0a0a; border:1px solid #222; border-radius:16px; padding:18px;
+  display:flex; flex-direction:column; gap:10px; transition: border-color .3s;
 }
-.post:hover {
-    border-color: #444;
-}
-.post-header {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-}
-.post-header strong {
-    color: #fff;
-    font-size: 15px;
-    font-weight: 600;
-}
-.post-header small {
-    color: #666;
-    font-size: 12px;
-}
-.post-content {
-    font-size: 15px;
-    line-height: 1.5;
-    word-wrap: break-word;
-    color: #ddd;
-}
-.post img {
-    max-width: 100%;
-    border-radius: 12px;
-    margin: 6px 0;
-    border: 1px solid #222;
-}
+.post:hover { border-color:#444; }
+.post-header { display:flex; align-items:center; gap:10px; }
+.post-header strong { color:#fff; font-size:15px; font-weight:600; }
+.post-header small { color:#666; font-size:12px; }
+.post-content { font-size:15px; line-height:1.5; word-wrap:break-word; color:#ddd; }
+.post img { max-width:100%; border-radius:12px; margin:6px 0; border:1px solid #222; }
 
-/* Reaction Wrapper */
-.reaction-wrapper {
-  position: relative;
-  display: inline-flex;
-  margin-top: 6px;
-}
+/* Reaction Wrapper (Post) */
+.reaction-wrapper { position:relative; display:inline-flex; margin-top:6px; }
 .like-btn {
-  background: #111;
-  border: 1px solid #2a2a2a;
-  color: #ccc;
-  padding: 6px 16px;
-  border-radius: 20px;
-  cursor: pointer;
-  font-size: 14px;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  transition: background 0.2s, color 0.2s;
+  background:#111; border:1px solid #2a2a2a; color:#ccc; padding:6px 16px; border-radius:20px;
+  cursor:pointer; font-size:14px; display:flex; align-items:center; gap:6px; transition: background .2s, color .2s;
 }
-.like-btn:hover {
-  background: #1f1f1f;
-  color: #fff;
-}
-/* Reaction Picker (hidden by default, shown on wrapper hover) */
+.like-btn:hover { background:#1f1f1f; color:#fff; }
 .reaction-picker {
-  position: absolute;
-  bottom: 110%;
-  left: 0;
-  display: flex;
-  gap: 6px;
-  background: #0a0a0a;
-  border: 1px solid #2a2a2a;
-  border-radius: 24px;
-  padding: 8px 12px;
-  box-shadow: 0 8px 20px rgba(0,0,0,0.8);
-  opacity: 0;
-  transform: scale(0.6) translateY(10px);
-  pointer-events: none;
-  transition: opacity 0.25s cubic-bezier(0,0,0.2,1), transform 0.25s cubic-bezier(0,0,0.2,1);
-  z-index: 10;
-  white-space: nowrap;
+  position:absolute; bottom:110%; left:0; display:flex; gap:6px;
+  background:#0a0a0a; border:1px solid #2a2a2a; border-radius:24px; padding:8px 12px;
+  box-shadow:0 8px 20px rgba(0,0,0,0.8); opacity:0; transform:scale(0.6) translateY(10px);
+  pointer-events:none; transition: opacity .25s cubic-bezier(0,0,0.2,1), transform .25s cubic-bezier(0,0,0.2,1);
+  z-index:10; white-space:nowrap;
 }
-.reaction-wrapper:hover .reaction-picker {
-  opacity: 1;
-  transform: scale(1) translateY(0);
-  pointer-events: auto;
-}
-/* Reaction option buttons */
-.reaction-option {
-  background: none;
-  border: none;
-  font-size: 24px;
-  cursor: pointer;
-  padding: 4px;
-  transition: transform 0.2s cubic-bezier(0.68, -0.55, 0.265, 1.55);
-  line-height: 1;
-}
-.reaction-option:hover {
-  transform: scale(1.4);
-}
-/* Staggered animation for emojis on hover */
+.reaction-wrapper:hover .reaction-picker { opacity:1; transform:scale(1) translateY(0); pointer-events:auto; }
+.reaction-option { background:none; border:none; font-size:24px; cursor:pointer; padding:4px; transition: transform .2s cubic-bezier(0.68, -0.55, 0.265, 1.55); }
+.reaction-option:hover { transform:scale(1.4); }
 .reaction-wrapper:hover .reaction-option:nth-child(1) { transition-delay: 0.05s; }
 .reaction-wrapper:hover .reaction-option:nth-child(2) { transition-delay: 0.1s; }
 .reaction-wrapper:hover .reaction-option:nth-child(3) { transition-delay: 0.15s; }
@@ -192,442 +61,51 @@ body {
 .reaction-wrapper:hover .reaction-option:nth-child(5) { transition-delay: 0.25s; }
 .reaction-wrapper:hover .reaction-option:nth-child(6) { transition-delay: 0.3s; }
 
-/* ---- Comment Area Overflow Fix + Smaller Sizes ---- */
-.comments, .comments-list, .comment-thread, .comment-body {
-    overflow: visible !important; /* allow picker to show outside */
-}
+/* Comment Section */
+.comments, .comments-list, .comment-thread, .comment-body { overflow: visible !important; }
+.comment-thread.indented { margin-left:20px; border-left:2px solid #555; padding-left:12px; margin-top:8px; }
+.comment-body { display:flex; flex-wrap:wrap; align-items:center; gap:6px; font-size:13px; color:#ddd; }
+.comment-body strong { color:#fff; margin-right:4px; font-size:13px; }
+.comment-text { font-size:13px; color:#ddd; }
 
-.comment-body {
-    font-size: 13px; /* reduce base text */
-    gap: 4px;
-}
-.comment-text {
-    font-size: 13px;
-    color: #ddd;
-}
-.cm-reaction-wrapper {
-    position: relative;
-    display: inline-flex;
-}
+/* Comment Reaction */
+.cm-reaction-wrapper { position:relative; display:inline-flex; }
+.cm-reaction-wrapper::after { content:""; position:absolute; top:-30px; left:0; width:100%; height:30px; z-index:25; }
 .cm-like-btn {
-    background: #0a0a0a;
-    border: 1px solid #222;
-    color: #aaa;
-    padding: 2px 8px;
-    border-radius: 10px;
-    cursor: pointer;
-    font-size: 11px; /* smaller */
-    display: flex;
-    align-items: center;
-    gap: 3px;
-    transition: 0.2s;
+  background:#0a0a0a; border:1px solid #222; color:#aaa; padding:2px 8px; border-radius:10px;
+  cursor:pointer; font-size:11px; display:flex; align-items:center; gap:3px; transition: .2s;
 }
-.cm-like-btn:hover { border-color: #555; color: #fff; }
-
-/* Reaction picker centered above button, not left aligned */
+.cm-like-btn:hover { border-color:#555; color:#fff; }
 .cm-reaction-picker {
-    position: absolute;
-    bottom: 100%; /* button එකට හරියටම උඩින් */
-    left: 50%;
-    transform: translateX(-50%) scale(0.7) translateY(4px);
-    display: flex;
-    gap: 4px;
-    background: #0a0a0a;
-    border: 1px solid #2a2a2a;
-    border-radius: 16px;
-    padding: 4px 8px;
-    opacity: 0;
-    pointer-events: none;
-    transition: 0.2s ease;
-    z-index: 20;
-    white-space: nowrap;
-    margin-bottom: 8px; /* button එකයි picker එකයි අතර කුඩා space */
+  position:absolute; bottom:calc(100% + 6px); left:50%; transform:translateX(-50%) scale(0.8) translateY(6px);
+  display:flex; gap:4px; background:#0a0a0a; border:1px solid #2a2a2a; border-radius:16px; padding:4px 8px;
+  opacity:0; pointer-events:none; transition: opacity .15s, transform .15s; z-index:30; white-space:nowrap;
 }
-.cm-reaction-wrapper:hover .cm-reaction-picker {
-    opacity: 1;
-    transform: translateX(-50%) scale(1) translateY(0);
-    pointer-events: auto;
-}
-/* Add a pseudo-element to bridge the gap (invisible hover area) */
-.cm-reaction-wrapper::after {
-    content: '';
-    position: absolute;
-    bottom: calc(100% - 4px);
-    left: 0;
-    width: 100%;
-    height: 12px; /* gap එක cover කරන්න */
-    z-index: -1;
-}
+.cm-reaction-wrapper:hover .cm-reaction-picker { opacity:1; transform:translateX(-50%) scale(1) translateY(0); pointer-events:auto; transition-delay:0.1s; }
+.cm-reaction-wrapper:not(:hover) .cm-reaction-picker { transition-delay:0.15s; }
 
-/* Smaller reaction emoji icons */
-.reaction-option {
-    font-size: 18px; /* reduced from 24px */
-    padding: 2px;
+/* Unified Send Buttons (Post button style) */
+.cm-send-btn, .top-reply-box button, .reply-box button {
+  background:#fff !important; color:#000 !important; border:none !important;
+  padding:6px 16px; border-radius:10px; font-weight:600; font-size:13px; cursor:pointer;
+  transition: .2s; letter-spacing:0.3px; white-space:nowrap;
 }
-.reply-box {
-    margin-top: 12px;
-    display: flex;
-    gap: 8px;
-    background: #0a0a0a;
-    border: 1px solid #2a2a2a;
-    border-radius: 12px;
-    padding: 8px 12px;
-    align-items: center;
-}
-.reply-box input {
-    flex: 1;
-    background: transparent;
-    border: none;
-    color: #fff;
-    font-size: 13px;
-    outline: none;
-    padding: 6px 0;
-}
-.reply-box input::placeholder {
-    color: #555;
-}
-.reply-box button {
-    background: #fff;
-    color: #000;
-    border: none;
-    border-radius: 8px;
-    padding: 6px 18px;
-    font-weight: 600;
-    font-size: 12px;
-    cursor: pointer;
-    transition: background 0.2s;
-    letter-spacing: 0.3px;
-}
-.reply-box button:hover {
-    background: #ccc;
-}
+.cm-send-btn:hover, .top-reply-box button:hover, .reply-box button:hover { background:#e0e0e0 !important; transform:scale(1.02); }
 
-/* ===== Scrollbar ===== */
-::-webkit-scrollbar {
-    width: 6px;
+/* Inputs/Textareas global */
+#hub input[type="text"], #hub textarea {
+  background:#000; border:1px solid #333; border-radius:10px; padding:10px 14px; color:#fff;
+  font-size:14px; outline:none; transition: border-color .2s; resize:vertical;
 }
-::-webkit-scrollbar-track {
-    background: #000;
-}
-::-webkit-scrollbar-thumb {
-    background: #333;
-    border-radius: 3px;
-}
+#hub input[type="text"]:focus, #hub textarea:focus { border-color:#fff; }
 
-/* Thread lines for clarity */
-.comment-thread.indented {
-    border-left: 2px solid #2a2a2a;
-    margin-left: 20px;
-    padding-left: 12px;
-    position: relative;
-}
-.comment-thread.indented::before {
-    content: '';
-    position: absolute;
-    top: 10px;
-    left: -2px;
-    width: 12px;
-    height: 12px;
-    border-left: 2px solid #2a2a2a;
-    border-bottom: 2px solid #2a2a2a;
-    border-bottom-left-radius: 6px;
-}
+.reply-toggle { background:none; border:none; color:#777; cursor:pointer; font-size:11px; padding:2px 6px; }
+.reply-toggle:hover { color:#fff; }
+.reply-box { margin-top:6px; display:flex; gap:6px; align-items:center; }
+.reply-box input { flex:1; }
+.children-comments { margin-top:6px; }
 
-/* ===== All Text Inputs & Textareas (Unified) ===== */
-#hub input[type="text"],
-#hub textarea {
-  width: 100%;
-  background: #000;
-  border: 1px solid #333;
-  border-radius: 10px;
-  padding: 10px 14px;
-  color: #fff;
-  font-size: 14px;
-  font-family: inherit;
-  outline: none;
-  transition: border-color 0.2s;
-  resize: vertical;
-}
-#hub input[type="text"]:focus,
-#hub textarea:focus {
-  border-color: #fff;
-}
-
-/* ===== Unified Primary Buttons (white on black) ===== */
-.post-box button,
-.top-reply-box button,
-.reply-box button,
-#hub .cm-send-btn {
-  background: #ffffff;
-  color: #000000;
-  border: none;
-  padding: 8px 18px;
-  border-radius: 10px;
-  font-weight: 600;
-  font-size: 13px;
-  cursor: pointer;
-  transition: background 0.2s, transform 0.1s;
-  letter-spacing: 0.3px;
-  white-space: nowrap;
-}
-.post-box button:hover,
-.top-reply-box button:hover,
-.reply-box button:hover,
-#hub .cm-send-btn:hover {
-  background: #e0e0e0;
-  transform: scale(1.02);
-}
-
-/* ===== Comment Container Overflow allow ===== */
-.comments,
-.comments-list,
-.comment-thread,
-.comment-body {
-  overflow: visible !important;
-}
-
-/* ===== Thread Indentation Line ===== */
-.comment-thread.indented {
-  margin-left: 20px;
-  border-left: 2px solid #444; /* clear line */
-  padding-left: 12px;
-  margin-top: 8px;
-}
-
-/* ===== Comment Body (smaller text, layout) ===== */
-.comment-body {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 6px;
-  font-size: 13px;
-  color: #ddd;
-}
-.comment-body strong {
-  color: #fff;
-  margin-right: 4px;
-  font-size: 13px;
-}
-
-/* ===== Comment Reaction Wrapper (fix disappearing) ===== */
-.cm-reaction-wrapper {
-  position: relative;
-  display: inline-flex;
-}
-/* Bridge gap between button and picker */
-.cm-reaction-wrapper::before {
-  content: '';
-  position: absolute;
-  top: -20px;
-  left: 0;
-  right: 0;
-  height: 20px;
-  z-index: 15;
-}
-.cm-like-btn {
-  background: #0a0a0a;
-  border: 1px solid #222;
-  color: #aaa;
-  padding: 2px 8px;
-  border-radius: 10px;
-  cursor: pointer;
-  font-size: 11px;
-  display: flex;
-  align-items: center;
-  gap: 3px;
-  transition: 0.2s;
-}
-.cm-like-btn:hover {
-  border-color: #555;
-  color: #fff;
-}
-/* Reaction Picker (centered above button) */
-.cm-reaction-picker {
-  position: absolute;
-  bottom: calc(100% + 4px);
-  left: 50%;
-  transform: translateX(-50%) scale(0.7) translateY(8px);
-  display: flex;
-  gap: 4px;
-  background: #0a0a0a;
-  border: 1px solid #2a2a2a;
-  border-radius: 16px;
-  padding: 4px 8px;
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity 0.2s ease, transform 0.2s ease;
-  z-index: 30;
-  white-space: nowrap;
-}
-.cm-reaction-wrapper:hover .cm-reaction-picker {
-  opacity: 1;
-  transform: translateX(-50%) scale(1) translateY(0);
-  pointer-events: auto;
-  transition-delay: 0.1s; /* delay on show */
-}
-/* Slight delay on hide to prevent flicker */
-.cm-reaction-wrapper .cm-reaction-picker {
-  transition-delay: 0s;
-}
-.cm-reaction-wrapper:not(:hover) .cm-reaction-picker {
-  transition-delay: 0.15s;
-}
-
-/* Reaction emoji smaller */
-.reaction-option {
-  font-size: 18px;
-  padding: 2px;
-  background: none;
-  border: none;
-  cursor: pointer;
-  transition: transform 0.2s cubic-bezier(0.68, -0.55, 0.265, 1.55);
-}
-.reaction-option:hover {
-  transform: scale(1.3);
-}
-
-/* Reply toggle & reply box */
-.reply-toggle {
-  background: none;
-  border: none;
-  color: #777;
-  cursor: pointer;
-  font-size: 11px;
-  padding: 2px 6px;
-}
-.reply-toggle:hover {
-  color: #fff;
-}
-.reply-box {
-  margin-top: 6px;
-  display: flex;
-  gap: 6px;
-  align-items: center;
-}
-.reply-box input {
-  flex: 1;
-}
-
-/* Children comments container */
-.children-comments {
-  margin-top: 6px;
-}
-
-/* ========== Comment Reaction Disappear Fix ========== */
-.comment-body {
-  position: relative; /* anchor for the reaction wrapper */
-}
-.cm-reaction-wrapper {
-  position: relative;
-  display: inline-flex;
-}
-/* Create an invisible bridge between button and picker */
-.cm-reaction-wrapper::after {
-  content: "";
-  position: absolute;
-  top: -30px;       /* extend upward */
-  left: 0;
-  width: 100%;
-  height: 30px;
-  z-index: 25;
-}
-.cm-like-btn {
-  background: #0a0a0a;
-  border: 1px solid #222;
-  color: #aaa;
-  padding: 2px 8px;
-  border-radius: 10px;
-  cursor: pointer;
-  font-size: 11px;
-  display: flex;
-  align-items: center;
-  gap: 3px;
-  transition: 0.2s;
-}
-.cm-like-btn:hover {
-  border-color: #555;
-  color: #fff;
-}
-.cm-reaction-picker {
-  position: absolute;
-  bottom: calc(100% + 6px);
-  left: 50%;
-  transform: translateX(-50%) scale(0.8) translateY(6px);
-  display: flex;
-  gap: 4px;
-  background: #0a0a0a;
-  border: 1px solid #2a2a2a;
-  border-radius: 16px;
-  padding: 4px 8px;
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity 0.15s, transform 0.15s;
-  z-index: 30;
-  white-space: nowrap;
-}
-.cm-reaction-wrapper:hover .cm-reaction-picker {
-  opacity: 1;
-  transform: translateX(-50%) scale(1) translateY(0);
-  pointer-events: auto;
-  transition-delay: 0.1s;   /* wait a bit before showing */
-}
-/* tiny delay when hiding to avoid flicker */
-.cm-reaction-wrapper:not(:hover) .cm-reaction-picker {
-  transition-delay: 0.15s;
-}
-
-/* ========== Unified Send Buttons (Post Button Style) ========== */
-.cm-send-btn,
-.top-reply-box button,
-.reply-box button {
-  background: #ffffff !important;
-  color: #000000 !important;
-  border: none !important;
-  padding: 6px 16px;
-  border-radius: 10px;
-  font-weight: 600;
-  font-size: 13px;
-  cursor: pointer;
-  transition: 0.2s;
-  letter-spacing: 0.3px;
-  white-space: nowrap;
-}
-.cm-send-btn:hover,
-.top-reply-box button:hover,
-.reply-box button:hover {
-  background: #e0e0e0 !important;
-  transform: scale(1.02);
-}
-
-/* ========== Input/Textareas Global Black Theme ========== */
-#hub input[type="text"],
-#hub textarea {
-  background: #000;
-  border: 1px solid #333;
-  border-radius: 10px;
-  padding: 10px 14px;
-  color: #fff;
-  font-size: 14px;
-  outline: none;
-  transition: border-color 0.2s;
-}
-#hub input[type="text"]:focus,
-#hub textarea:focus {
-  border-color: #fff;
-}
-
-/* ========== Thread Indentation (visible line) ========== */
-.comment-thread.indented {
-  margin-left: 20px;
-  border-left: 2px solid #555;
-  padding-left: 12px;
-  margin-top: 8px;
-}
-
-/* Ensure overflow visible */
-.comments,
-.comments-list,
-.comment-thread,
-.comment-body {
-  overflow: visible !important;
-}
+/* Scrollbar */
+::-webkit-scrollbar { width:6px; }
+::-webkit-scrollbar-track { background:#000; }
+::-webkit-scrollbar-thumb { background:#333; border-radius:3px; }
