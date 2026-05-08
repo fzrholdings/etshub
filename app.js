@@ -12,7 +12,6 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 const auth = firebase.auth();
-
 auth.signInAnonymously().catch(console.error);
 
 const IMGBB_API_KEY = "2e6555f84f2cba4982c98e35ff987554";
@@ -41,7 +40,7 @@ async function uploadImage(file) {
   return data.data.url;
 }
 
-// ---- Post Functions ----
+// ---- Post functions ----
 async function createPost() {
   const nickname = getAnonymousName();
   const content = document.getElementById('postContent').value.trim();
@@ -125,11 +124,12 @@ async function reactPost(postId, type) {
   } catch(e){console.error(e);}
 }
 
-// ---- Comment System with Threads & Reactions ----
+// ---- Real‑time Comment System with Threads ----
 function loadComments(postId) {
+  // Listen to all comments for this post and rebuild tree
   db.collection("posts").doc(postId).collection("comments")
-    .orderBy("timestamp","asc").get()
-    .then(snapshot => {
+    .orderBy("timestamp","asc")
+    .onSnapshot(snapshot => {
       const comments = [];
       snapshot.forEach(doc => comments.push({id: doc.id, ...doc.data()}));
       const tree = buildCommentTree(comments);
@@ -150,8 +150,8 @@ function buildCommentTree(comments) {
   return roots;
 }
 
-function renderCommentNode(postId, node, depth, container, parentIdForReply) {
-  if(depth > 2) return; // Limit depth
+function renderCommentNode(postId, node, depth, container) {
+  if(depth > 2) return;
   const commentId = node.id;
   let userReactions = JSON.parse(localStorage.getItem('commentReactions')||'{}');
   const userReactType = userReactions[`${postId}_${commentId}`] || null;
@@ -169,7 +169,7 @@ function renderCommentNode(postId, node, depth, container, parentIdForReply) {
   div.style.marginLeft = `${depth*20}px`;
   div.innerHTML = `
     <div class="comment-body">
-      <strong>${escapeHtml(node.nickname||'Anon')}:</strong> ${escapeHtml(node.text)}
+      <strong>${escapeHtml(node.nickname||'Anon')}:</strong> <span class="comment-text">${escapeHtml(node.text)}</span>
       <div class="cm-reaction-wrapper">
         <button class="cm-like-btn">${btnEmoji}<span>${btnText}</span>${countStr}</button>
         <div class="cm-reaction-picker">
@@ -185,10 +185,10 @@ function renderCommentNode(postId, node, depth, container, parentIdForReply) {
     <div class="children-comments" id="children-${postId}-${commentId}"></div>
   `;
   container.appendChild(div);
-  // Render children
+  // Render children recursively
   if(node.children && node.children.length) {
     const childContainer = document.getElementById(`children-${postId}-${commentId}`);
-    node.children.forEach(child => renderCommentNode(postId, child, depth+1, childContainer, commentId));
+    node.children.forEach(child => renderCommentNode(postId, child, depth+1, childContainer));
   }
 }
 
@@ -217,7 +217,8 @@ function addReply(postId, parentCommentId) {
     reactions: {like:0,love:0,haha:0,wow:0,sad:0,angry:0}
   }).then(() => {
     input.value = '';
-    toggleReplyBox(postId, parentCommentId); // Hide box after send
+    // Hide reply box after sending
+    document.getElementById(`replyBox-${postId}-${parentCommentId}`).style.display = 'none';
   });
 }
 
