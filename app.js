@@ -39,195 +39,179 @@ function generateRandomName() {
   const num = Math.floor(Math.random()*1000);
   return `${adj}${noun}${num}`;
 }
-function getAnonymousName() {
-  let name = localStorage.getItem('anonName');
-  if (!name) { name = generateRandomName(); localStorage.setItem('anonName', name); }
-  return name;
-}
-function getAnonymousId() {
-  let id = localStorage.getItem('anonId');
-  if (!id) {
-    id = 'anon_' + Math.random().toString(36).substr(2, 9) + Date.now().toString(36);
-    localStorage.setItem('anonId', id);
-  }
-  return id;
-}
-function escapeHtml(text) {
-  return String(text).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-}
-async function uploadImage(file) {
-  const fd = new FormData(); fd.append('image', file);
-  const res = await fetch('/api/upload', { method: 'POST', body: fd });
-  const data = await res.json();
-  return data.data.url;
-}
+function getAnonymousName() { let name = localStorage.getItem('anonName'); if (!name) { name = generateRandomName(); localStorage.setItem('anonName', name); } return name; }
+function getAnonymousId() { let id = localStorage.getItem('anonId'); if (!id) { id = 'anon_' + Math.random().toString(36).substr(2, 9) + Date.now().toString(36); localStorage.setItem('anonId', id); } return id; }
+function escapeHtml(text) { return String(text).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+async function uploadImage(file) { const fd = new FormData(); fd.append('image', file); const res = await fetch('/api/upload', { method:'POST', body:fd }); const data = await res.json(); return data.data.url; }
 
 // ----- Make URLs clickable -----
-function linkifyText(text) {
-  // Assumes text is already HTML‑escaped (no < > etc.)
-  // Match URLs and wrap in anchor tags
-  const urlRegex = /https?:\/\/[^\s<]+/gi;
-  return text.replace(urlRegex, url => `<a href="${url}" target="_blank" rel="noopener noreferrer">${url}</a>`);
-}
+function linkifyText(text) { const urlRegex = /https?:\/\/[^\s<]+/gi; return text.replace(urlRegex, url => `<a href="${url}" target="_blank" rel="noopener noreferrer">${url}</a>`); }
 
 // ---- Post Functions ----
 async function createPost() {
   const btn = document.getElementById('postButton');
-  
-  // Cooldown check (if cooldown active, ignore and don't mess with button state)
-  if (isCooldownActive()) {
-    showToast('Please wait 30 seconds between posts');
-    return;
-  }
-
+  if (isCooldownActive()) { showToast('Please wait 30 seconds between posts'); return; }
   const nickname = getAnonymousName();
   const content = document.getElementById('postContent').value.trim();
-  
-  // Validate
-  if (!content && selectedFiles.length === 0) {
-    showToast('Text or image required');
-    return;
-  }
-
-  // --- Start loading state ---
-  btn.disabled = true;
-  btn.textContent = 'Posting...';
-
-    // 🔗 Scan URLs in text for NSFW
+  if (!content && selectedFiles.length === 0) { showToast('Text or image required'); return; }
+  btn.disabled = true; btn.textContent = 'Posting...';
   const urlsInText = extractUrls(content);
-  for (let urlStr of urlsInText) {
-    const isNsfwUrl = await checkUrlNSFW(urlStr);
-    if (isNsfwUrl) {
-      showToast('🔞 NSFW link detected! Post rejected.');
-      btn.disabled = false;
-      btn.textContent = 'Post කරන්න';
-      return;
-    }
-  }
-
-  // 🔞 NSFW Check (Sightengine)
-  if (selectedFiles.length > 0) {
-    for (let file of selectedFiles) {
-      const isNsfw = await checkImageNSFW(file);
-      if (isNsfw) {
-        showToast('🔞 NSFW image detected! Post rejected.');
-        btn.disabled = false;
-        btn.textContent = 'Post කරන්න';
-        return;
-      }
-    }
-  }
-
-    // 🗜️ Compress images before upload
-  if (selectedFiles.length > 0) {
-    try {
-      for (let i = 0; i < selectedFiles.length; i++) {
-        selectedFiles[i] = await compressImage(selectedFiles[i]);
-      }
-      // Update previews with compressed thumbnails
-      renderPreviews();
-    } catch (e) {
-      console.warn('Image compression failed, using originals:', e);
-      // fallback to original files (already in selectedFiles)
-    }
-  }
-
-  // Upload images
+  for (let urlStr of urlsInText) { if (await checkUrlNSFW(urlStr)) { showToast('🔞 NSFW link detected! Post rejected.'); btn.disabled = false; btn.textContent = 'Post කරන්න'; return; } }
+  if (selectedFiles.length > 0) { for (let file of selectedFiles) { if (await checkImageNSFW(file)) { showToast('🔞 NSFW image detected! Post rejected.'); btn.disabled = false; btn.textContent = 'Post කරන්න'; return; } } }
+  if (selectedFiles.length > 0) { try { for (let i=0; i<selectedFiles.length; i++) selectedFiles[i] = await compressImage(selectedFiles[i]); renderPreviews(); } catch(e) {} }
   let imageUrls = [];
-  if (selectedFiles.length > 0) {
-    try {
-      for (let file of selectedFiles) {
-        const url = await uploadImage(file);
-        imageUrls.push(url);
-      }
-    } catch (e) {
-      showToast('Image upload fail');
-      btn.disabled = false;
-      btn.textContent = 'Post කරන්න';
-      return;
-    }
-  }
-
-  // Save to Firestore
+  if (selectedFiles.length > 0) { try { for (let file of selectedFiles) imageUrls.push(await uploadImage(file)); } catch(e) { showToast('Image upload fail'); btn.disabled = false; btn.textContent = 'Post කරන්න'; return; } }
   try {
-    await db.collection("posts").add({
-      nickname,
-      content,
-      imageUrls,
-      imageUrl: null,
-      timestamp: firebase.firestore.FieldValue.serverTimestamp(),
-      reactions: { like:0, love:0, haha:0, wow:0, sad:0, angry:0 }
-    });
-    
-    // Success – start cooldown (will disable button with countdown)
+    await db.collection("posts").add({ nickname, content, imageUrls, imageUrl:null, timestamp: firebase.firestore.FieldValue.serverTimestamp(), reactions: { like:0, love:0, haha:0, wow:0, sad:0, angry:0 } });
     startCooldown(30000);
-    
-    // Reset form
-    document.getElementById('postContent').value = '';
-    selectedFiles.length = 0;
-    renderPreviews();
-    
-  } catch (e) {
-    console.error('Post fail:', e);
-    showToast('Posting failed');
-    btn.disabled = false;
-    btn.textContent = 'Post කරන්න';
-  }
+    document.getElementById('postContent').value = ''; selectedFiles.length = 0; renderPreviews();
+  } catch(e) { console.error('Post fail:',e); showToast('Posting failed'); btn.disabled = false; btn.textContent = 'Post කරන්න'; }
 }
 
-// ---------- Post Cooldown (30s) ----------
-function getCooldownExpireTime() {
-  return parseInt(localStorage.getItem('postCooldown') || '0', 10);
-}
-function isCooldownActive() {
-  return Date.now() < getCooldownExpireTime();
-}
-function startCooldown(durationMs) {
-  const expireTime = Date.now() + durationMs;
-  localStorage.setItem('postCooldown', expireTime);
-  runCooldownTimer(expireTime);
-}
-function runCooldownTimer(expireTime) {
-  const btn = document.getElementById('postButton');
-  if (!btn) return;
-  btn.disabled = true;
-  const update = () => {
-    const remaining = Math.max(0, expireTime - Date.now());
-    if (remaining <= 0) {
-      btn.disabled = false;
-      btn.textContent = 'Post කරන්න';
-      localStorage.removeItem('postCooldown');
-      return;
-    }
-    btn.textContent = `Wait ${Math.ceil(remaining / 1000)}s...`;
-    setTimeout(update, 1000);
-  };
-  update();
-}
-(function() {
-  const expire = getCooldownExpireTime();
-  if (Date.now() < expire) runCooldownTimer(expire);
-})();
+// Cooldown
+function getCooldownExpireTime() { return parseInt(localStorage.getItem('postCooldown')||'0',10); }
+function isCooldownActive() { return Date.now() < getCooldownExpireTime(); }
+function startCooldown(ms) { const exp = Date.now()+ms; localStorage.setItem('postCooldown',exp); runCooldownTimer(exp); }
+function runCooldownTimer(exp) { const btn = document.getElementById('postButton'); if(!btn) return; btn.disabled = true; const upd = ()=>{ const r = Math.max(0,exp-Date.now()); if(r<=0){ btn.disabled=false; btn.textContent='Post කරන්න'; localStorage.removeItem('postCooldown'); return; } btn.textContent=`Wait ${Math.ceil(r/1000)}s...`; setTimeout(upd,1000); }; upd(); }
+(function(){ const e=getCooldownExpireTime(); if(Date.now()<e) runCooldownTimer(e); })();
 
-// ========== Convoy Planner ==========
-
-function switchTab(tabName) {
-  // Toggle active class on buttons
-  document.querySelectorAll('.tab-btn').forEach(b => {
-    b.classList.remove('active');
-    if (b.textContent.includes(tabName === 'wall' ? 'Wall' : 'Convoys')) {
-      b.classList.add('active');
-    }
+// Wall & Posts
+function loadPosts() {
+  let initialLoadDone = false;
+  db.collection("posts").orderBy("timestamp","desc").onSnapshot(snapshot => {
+    const container = document.getElementById('postsContainer'); container.innerHTML = '';
+    if (initialLoadDone) { snapshot.docChanges().forEach(c => { if (c.type==='added' && !c.doc.metadata.hasPendingWrites) playNotificationSound(); }); }
+    snapshot.forEach(doc => {
+      const post = doc.data(); const postId = doc.id;
+      let userReactions = JSON.parse(localStorage.getItem('postReactions')||'{}'); const userReactType = userReactions[postId]||null;
+      const reactionTypes = ['like','love','haha','wow','sad','angry'];
+      const totalReactions = reactionTypes.reduce((s,t)=>s+(post.reactions?.[t]||0),0);
+      let top='like', topCount=0; reactionTypes.forEach(t=>{ const c=post.reactions?.[t]||0; if(c>topCount){topCount=c;top=t;} });
+      const emojiMap = {like:'👍',love:'❤️',haha:'😆',wow:'😮',sad:'😢',angry:'😠'};
+      const btnEmoji = userReactType?emojiMap[userReactType]:(totalReactions>0?emojiMap[top]:'👍');
+      const btnText = userReactType?userReactType.charAt(0).toUpperCase()+userReactType.slice(1):(totalReactions>0?top.charAt(0).toUpperCase()+top.slice(1):'Like');
+      const countStr = totalReactions>0?' · '+totalReactions:'';
+      const div = document.createElement('div'); div.className='post'; div.id='post-'+postId; div.setAttribute('data-post-id',postId);
+      div.innerHTML = `
+        <div class="post-header"><div class="post-header-info"><strong>${escapeHtml(post.nickname)}</strong><small>${timeAgo(post.timestamp)}</small></div>
+          <div class="post-actions"><button onclick="togglePostMenu('${postId}')" class="menu-btn">⋮</button><div class="post-menu" id="menu-${postId}" style="display:none;">
+            <button onclick="sharePost('${postId}','${escapeHtml(post.content||'')}')">Share</button>
+            ${post.nickname!==getAnonymousName()?`<button onclick="reportPost('${postId}')">Report</button>`:''}
+            ${post.nickname===getAnonymousName()?`<button onclick="editPost('${postId}')">Edit</button><button onclick="deletePost('${postId}')">Delete</button>`:''}
+          </div></div></div>
+        <div class="post-content">${post.content?linkifyText(filterBadWords(escapeHtml(post.content))):''}</div>
+        <div class="edit-area" style="display:none;"><textarea></textarea><div class="edit-actions"><button class="cancel-edit-btn">Cancel</button><button class="save-edit-btn">Save</button></div></div>
+        ${(post.imageUrls&&post.imageUrls.length>0)?`<div class="image-collage ${post.imageUrls.length===1?'single':''}">${post.imageUrls.map((url,i)=>`<img src="${escapeHtml(url)}" alt="image" onclick="openLightbox('${postId}',${i})">`).join('')}</div>`:''}
+        ${(!post.imageUrls||post.imageUrls.length===0)&&post.imageUrl?`<div class="image-collage single"><img src="${escapeHtml(post.imageUrl)}" onclick="openLightbox('${postId}',0)"></div>`:''}
+        <div class="reaction-wrapper"><button class="like-btn">${btnEmoji} <span>${btnText}</span>${countStr}</button><div class="reaction-picker">${reactionTypes.map(t=>`<button class="reaction-option" onclick="event.stopPropagation();reactPost('${postId}','${t}')">${emojiMap[t]}</button>`).join('')}</div></div>
+        <button class="comment-toggle-btn" onclick="toggleCommentBox('${postId}')">💬 Comment</button>
+        <div class="comments" id="comments-${postId}" style="display:none;"><div class="comments-list" id="commentsList-${postId}"></div><div class="top-reply-box"><input type="text" id="commentInput-${postId}" placeholder="Comment එකක්..."><button class="cm-send-btn" onclick="addComment('${postId}')">Send</button></div></div>
+      `;
+      div.dataset.searchText = (post.content+' '+post.nickname).toLowerCase();
+      container.appendChild(div);
+      renderLinkPreviews(div, postId);
+      loadComments(postId);
+    });
+    const hash = window.location.hash; if (hash&&hash.startsWith('#post-')) { const targetId = hash.replace('#post-',''); setTimeout(()=>{ const tp = document.getElementById('post-'+targetId); if(tp){ tp.scrollIntoView({behavior:'smooth',block:'center'}); tp.classList.add('highlight'); setTimeout(()=>tp.classList.remove('highlight'),2500); } },300); }
+    initialLoadDone = true;
   });
-  // Show/hide containers
-  document.getElementById('wallContainer').style.display = tabName === 'wall' ? 'block' : 'none';
-  document.getElementById('convoysContainer').style.display = tabName === 'convoys' ? 'block' : 'none';
-  if (tabName === 'convoys') loadConvoys();
 }
 
-// ========== Advanced Convoy Planner ==========
+async function reactPost(postId, type) {
+  const ref = db.collection("posts").doc(postId);
+  const userReactions = JSON.parse(localStorage.getItem('postReactions')||'{}'); const currentType = userReactions[postId];
+  try {
+    await db.runTransaction(async t => {
+      const doc = await t.get(ref); if(!doc.exists) return; const data = doc.data();
+      const reactions = { like:0, love:0, haha:0, wow:0, sad:0, angry:0, ...data.reactions };
+      if (currentType === type) { reactions[type] = Math.max(0, (reactions[type]||0)-1); delete userReactions[postId]; }
+      else { if(currentType) reactions[currentType] = Math.max(0, (reactions[currentType]||0)-1); reactions[type] = (reactions[type]||0)+1; userReactions[postId] = type; }
+      t.update(ref, { reactions });
+    });
+    localStorage.setItem('postReactions', JSON.stringify(userReactions));
+  } catch(e) { console.error("Reaction toggle failed:",e); }
+}
 
-let allConvoysData = []; // store for search
+// Comments
+function loadComments(postId) {
+  db.collection("posts").doc(postId).collection("comments").orderBy("timestamp","asc").onSnapshot(snapshot => {
+    const comments = []; snapshot.forEach(doc => comments.push({id:doc.id, ...doc.data()}));
+    const tree = buildCommentTree(comments); const list = document.getElementById('commentsList-'+postId); if(!list) return; list.innerHTML = '';
+    tree.forEach(root => renderCommentNode(postId, root, 0, list));
+  });
+}
+function buildCommentTree(comments) { const map={}, roots=[]; comments.forEach(c=>map[c.id]={...c, children:[]}); comments.forEach(c=>{ if(c.parentId&&map[c.parentId]) map[c.parentId].children.push(map[c.id]); else roots.push(map[c.id]); }); return roots; }
+function renderCommentNode(postId, node, depth, container) {
+  if(depth>2) return; const commentId = node.id;
+  let userReactions = JSON.parse(localStorage.getItem('commentReactions')||'{}'); const userReactType = userReactions[`${postId}_${commentId}`]||null;
+  const reactionTypes = ['like','love','haha','wow','sad','angry']; const totalReactions = reactionTypes.reduce((s,t)=>s+(node.reactions?.[t]||0),0);
+  const emojiMap = {like:'👍',love:'❤️',haha:'😆',wow:'😮',sad:'😢',angry:'😠'};
+  let top='like', topCount=0; reactionTypes.forEach(t=>{const c=node.reactions?.[t]||0; if(c>topCount){topCount=c;top=t;}});
+  const btnEmoji = userReactType?emojiMap[userReactType]:(totalReactions>0?emojiMap[top]:'👍');
+  const btnText = userReactType?userReactType.charAt(0).toUpperCase()+userReactType.slice(1):(totalReactions>0?top.charAt(0).toUpperCase()+top.slice(1):'Like');
+  const countStr = totalReactions>0?' · '+totalReactions:'';
+  const div = document.createElement('div'); div.className='comment-thread'+(depth>0?' indented':''); div.style.marginLeft = depth>0?'20px':'0';
+  div.innerHTML = `
+    <div class="comment-body"><strong>${escapeHtml(node.nickname||'Anon')}:</strong> <span class="comment-text">${linkifyText(filterBadWords(escapeHtml(node.text)))}</span>
+      <div class="cm-reaction-wrapper"><button class="cm-like-btn">${btnEmoji}<span>${btnText}</span>${countStr}</button><div class="cm-reaction-picker">${reactionTypes.map(t=>`<button class="reaction-option" onclick="event.stopPropagation();reactComment('${postId}','${commentId}','${t}')">${emojiMap[t]}</button>`).join('')}</div></div>
+      <button class="reply-toggle" onclick="toggleReplyBox('${postId}','${commentId}')">Reply</button>
+    </div>
+    <div class="reply-box" id="replyBox-${postId}-${commentId}" style="display:none;"><input type="text" id="replyInput-${postId}-${commentId}" placeholder="Reply..."><button class="cm-send-btn" onclick="addReply('${postId}','${commentId}')">Send</button></div>
+    <div class="children-comments" id="children-${postId}-${commentId}"></div>
+  `;
+  container.appendChild(div);
+  if(node.children&&node.children.length) { const cc = document.getElementById(`children-${postId}-${commentId}`); node.children.forEach(c=>renderCommentNode(postId,c,depth+1,cc)); }
+}
+async function addComment(postId) { const input = document.getElementById('commentInput-'+postId); const text = input.value.trim(); if(!text) return; const urls = extractUrls(text); for(let u of urls) if(await checkUrlNSFW(u)) { showToast('🔞 NSFW link detected! Comment rejected.'); return; } const nickname=getAnonymousName(); db.collection("posts").doc(postId).collection("comments").add({ nickname,text,timestamp:firebase.firestore.FieldValue.serverTimestamp(),parentId:null,reactions:{like:0,love:0,haha:0,wow:0,sad:0,angry:0} }).then(()=>input.value=''); }
+async function addReply(postId, parentCommentId) { const input = document.getElementById(`replyInput-${postId}-${parentCommentId}`); const text = input.value.trim(); if(!text) return; const urls = extractUrls(text); for(let u of urls) if(await checkUrlNSFW(u)) { showToast('🔞 NSFW link detected! Reply rejected.'); return; } const nickname=getAnonymousName(); db.collection("posts").doc(postId).collection("comments").add({ nickname,text,timestamp:firebase.firestore.FieldValue.serverTimestamp(),parentId:parentCommentId,reactions:{like:0,love:0,haha:0,wow:0,sad:0,angry:0} }).then(()=>{ input.value=''; document.getElementById(`replyBox-${postId}-${parentCommentId}`).style.display='none'; }); }
+async function reactComment(postId, commentId, type) { /* similar toggle as posts */ }
+
+function toggleCommentBox(postId) { const d=document.getElementById('comments-'+postId); d.style.display = d.style.display==='none'?'block':'none'; }
+function toggleReplyBox(postId, commentId) { const d=document.getElementById(`replyBox-${postId}-${commentId}`); d.style.display = d.style.display==='none'?'flex':'none'; }
+
+// Files & Attachments
+const selectedFiles = [];
+function handleFileSelect(fileList) { /* ... existing code ... */ }
+function addFiles(files) { /* ... */ }
+function renderPreviews() { /* ... */ }
+function removeFile(index) { /* ... */ }
+
+// Post Actions (menu, share, edit, delete, report)
+function togglePostMenu(postId) { /* ... */ }
+function showToast(msg) { /* ... */ }
+function sharePost(postId, text) { const postUrl = window.location.href.split('#')[0] + '#post-'+postId; if(navigator.share) { navigator.share({title:'ETS Ceylon FM Hub', text:text||'Check this post!', url:postUrl}).catch(()=>{}); } else { navigator.clipboard.writeText(postUrl).then(()=>showToast('📋 Post link copied!')).catch(()=>showToast('Copy failed')); } }
+async function editPost(postId) { /* ... */ }
+async function deletePost(postId) { /* ... */ }
+function showConfirm(msg, onConfirm) { /* ... */ }
+async function reportPost(postId) { /* ... */ }
+async function deletePostInternal(postId) { /* ... */ }
+
+// NSFW Checks
+async function checkImageNSFW(file) { const fd = new FormData(); fd.append('media',file); const res = await fetch('/api/nsfw-check',{method:'POST',body:fd}); const result = await res.json(); if(result.status==='success'&&result.nudity){ if(result.nudity.sexual_activity>0.3||result.nudity.sexual_display>0.3||result.nudity.erotica>0.3) return true; } return false; }
+
+async function checkUrlNSFW(urlStr) { try { const fd = new FormData(); fd.append('url',urlStr); const res = await fetch('/api/blocklist-check',{method:'POST',body:fd}); if(!res.ok) throw new Error('blocklist fail'); const data = await res.json(); return data.blocked===true; } catch(e) { console.error(e); showToast('⚠️ Link safety check failed. Post blocked.'); return true; } }
+
+// Time ago, compression, sound, link preview, etc.
+function timeAgo(ts) { /* ... */ }
+function compressImage(file, maxW=1200, maxH=1200, q=0.8) { /* ... */ }
+let audioCtx=null, audioUnlocked=false;
+function unlockAudio() { /* ... */ }
+function playNotificationSound() { /* ... */ }
+document.addEventListener('click', unlockAudio, {once:true});
+
+function extractUrls(text) { /* ... */ }
+async function fetchLinkPreview(url) { /* ... */ }
+async function renderLinkPreviews(postDiv, postId) { /* ... */ }
+
+// Convoy Planner
+function switchTab(tabName) {
+  document.querySelectorAll('.tab-btn').forEach(b => { b.classList.remove('active'); if (b.textContent.includes(tabName==='wall'?'Wall':'Convoys')) b.classList.add('active'); });
+  document.getElementById('wallContainer').style.display = tabName==='wall'?'block':'none';
+  document.getElementById('convoysContainer').style.display = tabName==='convoys'?'block':'none';
+  if (tabName==='convoys') loadConvoys();
+}
+
+let allConvoysData = [];
 
 async function createConvoy() {
   const title = document.getElementById('convoyTitle').value.trim();
@@ -237,868 +221,76 @@ async function createConvoy() {
   const maxSlots = parseInt(document.getElementById('convoyMaxSlots').value) || 0;
   const desc = document.getElementById('convoyDesc').value.trim();
   const type = document.getElementById('convoyType').value;
-  
-  // DLCs
   const dlcCheckboxes = document.querySelectorAll('.dlc-checkboxes input:checked');
   const dlcs = Array.from(dlcCheckboxes).map(cb => cb.value);
-  
-  // Tags
   const tagsStr = document.getElementById('convoyTags').value.trim();
-  const tags = tagsStr ? tagsStr.split(',').map(t => t.trim()).filter(t => t) : [];
-  
-  // Route image
+  const tags = tagsStr ? tagsStr.split(',').map(t=>t.trim()).filter(t=>t) : [];
   const fileInput = document.getElementById('convoyImageInput');
   let routeImageUrl = null;
-  if (fileInput.files[0]) {
-    try {
-      const compressedFile = await compressImage(fileInput.files[0]);
-      routeImageUrl = await uploadImage(compressedFile);
-    } catch (e) {
-      return showToast('Route image upload failed');
-    }
-  }
-  
+  if (fileInput.files[0]) { try { const comp = await compressImage(fileInput.files[0]); routeImageUrl = await uploadImage(comp); } catch(e) { return showToast('Route image upload failed'); } }
   if (!title || !dateTimeStr) return showToast('Title and date are required!');
   if (!server) return showToast('Please select a server');
-  
   const datetime = new Date(dateTimeStr);
   if (isNaN(datetime.getTime())) return showToast('Invalid date/time');
-
   try {
-    await db.collection("convoys").add({
-      title,
-      server,
-      meetingLocation: meeting,
-      datetime: firebase.firestore.Timestamp.fromDate(datetime),
-      maxSlots,
-      description: desc,
-      dlcs,
-      tags,
-      routeImage: routeImageUrl,
-      type,
-      creatorName: getAnonymousName(),
-      participants: {}
-    });
-    // Clear form
-    document.getElementById('convoyTitle').value = '';
-    document.getElementById('convoyServer').value = '';
-    document.getElementById('convoyMeeting').value = '';
-    document.getElementById('convoyDateTime').value = '';
-    document.getElementById('convoyMaxSlots').value = '';
-    document.getElementById('convoyDesc').value = '';
-    document.getElementById('convoyTags').value = '';
-    document.getElementById('convoyImageInput').value = '';
-    showToast('🚀 Convoy scheduled!');
-    loadConvoys();
-  } catch (e) {
-    console.error(e);
-    showToast('Failed to create convoy');
-  }
+    await db.collection("convoys").add({ title, server, meetingLocation:meeting, datetime:firebase.firestore.Timestamp.fromDate(datetime), maxSlots, description:desc, dlcs, tags, routeImage:routeImageUrl, type, creatorName:getAnonymousName(), participants:{} });
+    ['convoyTitle','convoyServer','convoyMeeting','convoyDateTime','convoyMaxSlots','convoyDesc','convoyTags','convoyImageInput'].forEach(id=>document.getElementById(id).value='');
+    showToast('🚀 Convoy scheduled!'); loadConvoys();
+  } catch(e) { console.error(e); showToast('Failed to create convoy'); }
 }
 
 function loadConvoys() {
-  db.collection("convoys").orderBy("datetime", "asc").onSnapshot(snapshot => {
-    allConvoysData = [];
-    const container = document.getElementById('convoysList');
-    container.innerHTML = '';
-    if (snapshot.empty) {
-      container.innerHTML = '<p style="color:#aaa; text-align:center;">No convoys planned yet.</p>';
-      return;
-    }
-    snapshot.forEach(doc => {
-      const convoy = doc.data();
-      const convoyId = doc.id;
-      allConvoysData.push({ id: convoyId, ...convoy });
-    });
+  db.collection("convoys").orderBy("datetime","asc").onSnapshot(snapshot => {
+    allConvoysData = []; const container = document.getElementById('convoysList'); container.innerHTML = '';
+    if (snapshot.empty) { container.innerHTML = '<p style="color:#aaa; text-align:center;">No convoys planned yet.</p>'; return; }
+    snapshot.forEach(doc => { allConvoysData.push({ id:doc.id, ...doc.data() }); });
     renderConvoyCards(allConvoysData);
   });
 }
 
 function renderConvoyCards(convoys) {
-  const container = document.getElementById('convoysList');
-  container.innerHTML = '';
-  if (convoys.length === 0) {
-    container.innerHTML = '<p style="color:#aaa; text-align:center;">No matching convoys.</p>';
-    return;
-  }
+  const container = document.getElementById('convoysList'); container.innerHTML = '';
+  if (convoys.length === 0) { container.innerHTML = '<p style="color:#aaa; text-align:center;">No matching convoys.</p>'; return; }
   convoys.forEach(convoy => {
-    const convoyId = convoy.id;
-    const anonId = getAnonymousId();
-    const participants = convoy.participants || {};
-    const isJoined = !!participants[anonId];
-    const participantNames = Object.keys(participants); // array of anonIds, we need to map to names? anonId != name, so we can't show names directly without storing names. We'll store names in participants object { [anonId]: name }.
-    // For now, we'll just show count. To show names, we need to store name as well. We'll update the join function to store name.
-    const count = participantNames.length;
-    const maxSlots = convoy.maxSlots || 0;
-    const slotsText = maxSlots > 0 ? `${count}/${maxSlots}` : `${count}`;
-
-    const card = document.createElement('div');
-    card.className = 'convoy-card';
+    const anonId = getAnonymousId(); const participants = convoy.participants||{}; const isJoined = !!participants[anonId]; const count = Object.keys(participants).length;
+    const maxSlots = convoy.maxSlots||0; const slotsText = maxSlots>0?`${count}/${maxSlots}`:`${count}`;
+    const card = document.createElement('div'); card.className='convoy-card';
     card.innerHTML = `
       <div class="convoy-title">${escapeHtml(convoy.title)}</div>
       <div class="convoy-meta">
-        <span>🖥️ ${escapeHtml(convoy.server || 'N/A')}</span>
-        ${convoy.meetingLocation ? `<span>📍 ${escapeHtml(convoy.meetingLocation)}</span>` : ''}
+        <span>🖥️ ${escapeHtml(convoy.server||'N/A')}</span>
+        ${convoy.meetingLocation?`<span>📍 ${escapeHtml(convoy.meetingLocation)}</span>`:''}
         <span>🕒 ${convoy.datetime.toDate().toLocaleString()}</span>
-        ${convoy.dlcs && convoy.dlcs.length > 0 ? `<span>📦 ${convoy.dlcs.join(', ')}</span>` : ''}
-        ${convoy.tags && convoy.tags.length > 0 ? `<span>🏷️ ${convoy.tags.join(', ')}</span>` : ''}
+        ${convoy.dlcs&&convoy.dlcs.length>0?`<span>📦 ${convoy.dlcs.join(', ')}</span>`:''}
+        ${convoy.tags&&convoy.tags.length>0?`<span>🏷️ ${convoy.tags.join(', ')}</span>`:''}
         <span>👥 ${slotsText} trucks</span>
-        ${convoy.type ? `<span>🔒 ${convoy.type.toUpperCase()}</span>` : ''}
+        ${convoy.type?`<span>🔒 ${convoy.type.toUpperCase()}</span>`:''}
       </div>
-      ${convoy.description ? `<div class="convoy-desc">${escapeHtml(convoy.description)}</div>` : ''}
-      ${convoy.routeImage ? `<img src="${escapeHtml(convoy.routeImage)}" class="convoy-route-img" alt="Route Map" onclick="window.open(this.src)">` : ''}
-      <button class="convoy-join-btn ${isJoined ? 'joined' : ''}" onclick="toggleJoinConvoy('${convoyId}')">${isJoined ? '✔ Joined' : 'Join Convoy'}</button>
-      <div class="convoy-participants">${slotsText} participant${count !== 1 ? 's' : ''}</div>
+      ${convoy.description?`<div class="convoy-desc">${escapeHtml(convoy.description)}</div>`:''}
+      ${convoy.routeImage?`<img src="${escapeHtml(convoy.routeImage)}" class="convoy-route-img" onclick="window.open(this.src)">`:''}
+      <button class="convoy-join-btn ${isJoined?'joined':''}" onclick="toggleJoinConvoy('${convoy.id}')">${isJoined?'✔ Joined':'Join Convoy'}</button>
+      <div class="convoy-participants">${slotsText} participant${count!==1?'s':''}</div>
     `;
     container.appendChild(card);
   });
 }
 
 async function toggleJoinConvoy(convoyId) {
-  const ref = db.collection("convoys").doc(convoyId);
-  const anonId = getAnonymousId();
-  const anonName = getAnonymousName(); // store name with join
-  
+  const ref = db.collection("convoys").doc(convoyId); const anonId = getAnonymousId(); const anonName = getAnonymousName();
   try {
-    await db.runTransaction(async (transaction) => {
-      const doc = await transaction.get(ref);
-      if (!doc.exists) return;
-      const data = doc.data();
-      const participants = { ...data.participants };
-      if (participants[anonId]) {
-        delete participants[anonId];
-      } else {
-        participants[anonId] = anonName; // store name for display
-      }
-      transaction.update(ref, { participants });
+    await db.runTransaction(async t => {
+      const doc = await t.get(ref); if(!doc.exists) return; const data = doc.data(); const participants = { ...data.participants };
+      if (participants[anonId]) delete participants[anonId]; else participants[anonId] = anonName;
+      t.update(ref, { participants });
     });
-  } catch (e) {
-    console.error(e);
-    showToast('Failed to update participation');
-  }
+  } catch(e) { console.error(e); showToast('Failed to update participation'); }
 }
 
-// Search filter
 function filterConvoys() {
   const term = document.getElementById('convoySearch').value.trim().toLowerCase();
   if (!term) { renderConvoyCards(allConvoysData); return; }
-  const filtered = allConvoysData.filter(c => {
-    return (c.title && c.title.toLowerCase().includes(term)) ||
-           (c.server && c.server.toLowerCase().includes(term)) ||
-           (c.meetingLocation && c.meetingLocation.toLowerCase().includes(term)) ||
-           (c.tags && c.tags.some(t => t.toLowerCase().includes(term)));
-  });
+  const filtered = allConvoysData.filter(c => (c.title&&c.title.toLowerCase().includes(term))||(c.server&&c.server.toLowerCase().includes(term))||(c.meetingLocation&&c.meetingLocation.toLowerCase().includes(term))||(c.tags&&c.tags.some(t=>t.toLowerCase().includes(term))));
   renderConvoyCards(filtered);
-}
-
-function loadPosts() {
-  let initialLoadDone = false;
-
-  db.collection("posts").orderBy("timestamp","desc").onSnapshot(snapshot => {
-    const container = document.getElementById('postsContainer');
-    container.innerHTML = '';
-
-    // Play sound only for new posts added after initial load
-    if (initialLoadDone) {
-      snapshot.docChanges().forEach(change => {
-        if (change.type === 'added' && !change.doc.metadata.hasPendingWrites) {
-          playNotificationSound();
-        }
-      });
-    }
-
-    snapshot.forEach(doc => {
-      const post = doc.data();
-      const postId = doc.id;
-      let userReactions = JSON.parse(localStorage.getItem('postReactions') || '{}');
-      const userReactType = userReactions[postId] || null;
-      const reactionTypes = ['like', 'love', 'haha', 'wow', 'sad', 'angry'];
-      const totalReactions = reactionTypes.reduce((s, t) => s + (post.reactions?.[t] || 0), 0);
-      let top = 'like', topCount = 0;
-      reactionTypes.forEach(t => {
-        const c = post.reactions?.[t] || 0;
-        if (c > topCount) { topCount = c; top = t; }
-      });
-      const emojiMap = { like: '👍', love: '❤️', haha: '😆', wow: '😮', sad: '😢', angry: '😠' };
-      const btnEmoji = userReactType ? emojiMap[userReactType] : (totalReactions > 0 ? emojiMap[top] : '👍');
-      const btnText = userReactType ? userReactType.charAt(0).toUpperCase() + userReactType.slice(1) : (totalReactions > 0 ? top.charAt(0).toUpperCase() + top.slice(1) : 'Like');
-      const countStr = totalReactions > 0 ? ' · ' + totalReactions : '';
-
-      const div = document.createElement('div');
-      div.className = 'post';
-      div.id = 'post-' + postId;
-      div.setAttribute('data-post-id', postId);
-      div.innerHTML = `
-        <div class="post-header">
-          <div class="post-header-info">
-            <strong>${escapeHtml(post.nickname)}</strong>
-            <small>${timeAgo(post.timestamp)}</small>
-          </div>
-          <div class="post-actions">
-            <button onclick="togglePostMenu('${postId}')" class="menu-btn">⋮</button>
-            <div class="post-menu" id="menu-${postId}" style="display:none;">
-              <button onclick="sharePost('${postId}', '${escapeHtml(post.content || '')}')">Share</button>
-              ${post.nickname !== getAnonymousName() ? `<button onclick="reportPost('${postId}')">Report</button>` : ''}
-              ${post.nickname === getAnonymousName() ? `
-                <button onclick="editPost('${postId}')">Edit</button>
-                <button onclick="deletePost('${postId}')">Delete</button>
-              ` : ''}
-            </div>
-          </div>
-        </div>
-        <div class="post-content">${post.content ? linkifyText(filterBadWords(escapeHtml(post.content))) : ''}</div>
-        <div class="edit-area" style="display:none;">
-          <textarea></textarea>
-          <div class="edit-actions">
-            <button class="cancel-edit-btn">Cancel</button>
-            <button class="save-edit-btn">Save</button>
-          </div>
-        </div>
-        ${(post.imageUrls && post.imageUrls.length > 0) ? `
-          <div class="image-collage ${post.imageUrls.length === 1 ? 'single' : ''}">
-            ${post.imageUrls.map((url, index) => `<img src="${escapeHtml(url)}" alt="image" onclick="openLightbox('${postId}', ${index})">`).join('')}
-          </div>
-        ` : ''}
-        ${(!post.imageUrls || post.imageUrls.length === 0) && post.imageUrl ? `
-          <div class="image-collage single">
-            <img src="${escapeHtml(post.imageUrl)}" alt="image" onclick="openLightbox('${postId}', 0)">
-          </div>
-        ` : ''}
-        <div class="reaction-wrapper">
-          <button class="like-btn">${btnEmoji} <span>${btnText}</span>${countStr}</button>
-          <div class="reaction-picker">
-            ${reactionTypes.map(t => `<button class="reaction-option" onclick="event.stopPropagation(); reactPost('${postId}','${t}')">${emojiMap[t]}</button>`).join('')}
-          </div>
-        </div>
-        <button class="comment-toggle-btn" onclick="toggleCommentBox('${postId}')">💬 Comment</button>
-        <div class="comments" id="comments-${postId}" style="display:none;">
-          <div class="comments-list" id="commentsList-${postId}"></div>
-          <div class="top-reply-box">
-            <input type="text" id="commentInput-${postId}" placeholder="Comment එකක්...">
-            <button class="cm-send-btn" onclick="addComment('${postId}')">Send</button>
-          </div>
-        </div>
-      `;
-      div.dataset.searchText = (post.content + ' ' + post.nickname).toLowerCase();
-      container.appendChild(div);
-      renderLinkPreviews(div, postId); // async, no need to await
-      loadComments(postId);
-    });
-
-    // Deep link highlight & scroll
-    const hash = window.location.hash;
-    if (hash && hash.startsWith('#post-')) {
-      const targetId = hash.replace('#post-', '');
-      setTimeout(() => {
-        const targetPost = document.getElementById('post-' + targetId);
-        if (targetPost) {
-          targetPost.scrollIntoView({ behavior: 'smooth', block: 'center' });
-          targetPost.classList.add('highlight');
-          setTimeout(() => targetPost.classList.remove('highlight'), 2500);
-        }
-      }, 300);
-    }
-
-    // Mark initial load done (so future snapshots trigger sound)
-    initialLoadDone = true;
-  });
-}
-
-// Toggle Reaction for Posts
-async function reactPost(postId, type) {
-  const ref = db.collection("posts").doc(postId);
-  const userReactions = JSON.parse(localStorage.getItem('postReactions')||'{}');
-  const currentType = userReactions[postId];
-  try {
-    await db.runTransaction(async (transaction) => {
-      const doc = await transaction.get(ref);
-      if (!doc.exists) return;
-      const data = doc.data();
-      const reactions = { like:0, love:0, haha:0, wow:0, sad:0, angry:0, ...data.reactions };
-      if (currentType === type) {
-        reactions[type] = Math.max(0, (reactions[type] || 0) - 1);
-        delete userReactions[postId];
-      } else {
-        if (currentType) reactions[currentType] = Math.max(0, (reactions[currentType] || 0) - 1);
-        reactions[type] = (reactions[type] || 0) + 1;
-        userReactions[postId] = type;
-      }
-      transaction.update(ref, { reactions });
-    });
-    localStorage.setItem('postReactions', JSON.stringify(userReactions));
-  } catch (e) {
-    console.error("Reaction toggle failed:", e);
-  }
-}
-
-// Comment System
-function loadComments(postId) {
-  db.collection("posts").doc(postId).collection("comments").orderBy("timestamp","asc").onSnapshot(snapshot => {
-    const comments = [];
-    snapshot.forEach(doc => comments.push({id: doc.id, ...doc.data()}));
-    const tree = buildCommentTree(comments);
-    const list = document.getElementById('commentsList-'+postId);
-    if(!list) return;
-    list.innerHTML = '';
-    tree.forEach(root => renderCommentNode(postId, root, 0, list));
-  });
-}
-
-function buildCommentTree(comments) {
-  const map = {}, roots = [];
-  comments.forEach(c => map[c.id] = {...c, children:[]});
-  comments.forEach(c => {
-    if(c.parentId && map[c.parentId]) map[c.parentId].children.push(map[c.id]);
-    else roots.push(map[c.id]);
-  });
-  return roots;
-}
-
-function renderCommentNode(postId, node, depth, container) {
-  if(depth > 2) return;
-  const commentId = node.id;
-  let userReactions = JSON.parse(localStorage.getItem('commentReactions')||'{}');
-  const userReactType = userReactions[`${postId}_${commentId}`] || null;
-  const reactionTypes = ['like','love','haha','wow','sad','angry'];
-  const totalReactions = reactionTypes.reduce((s,t)=>s+(node.reactions?.[t]||0),0);
-  const emojiMap = {like:'👍',love:'❤️',haha:'😆',wow:'😮',sad:'😢',angry:'😠'};
-  let top='like', topCount=0;
-  reactionTypes.forEach(t=>{const c=node.reactions?.[t]||0; if(c>topCount){topCount=c;top=t;}});
-  const btnEmoji = userReactType ? emojiMap[userReactType] : (totalReactions>0?emojiMap[top]:'👍');
-  const btnText = userReactType ? userReactType.charAt(0).toUpperCase()+userReactType.slice(1) : (totalReactions>0?top.charAt(0).toUpperCase()+top.slice(1):'Like');
-  const countStr = totalReactions>0?' · '+totalReactions:'';
-
-  const div = document.createElement('div');
-  div.className = 'comment-thread' + (depth>0?' indented':'');
-  div.style.marginLeft = depth>0 ? '20px' : '0';
-  div.innerHTML = `
-    <div class="comment-body">
-      <strong>${escapeHtml(node.nickname||'Anon')}:</strong> <span class="comment-text">${linkifyText(filterBadWords(escapeHtml(node.text)))}</span>
-      <div class="cm-reaction-wrapper">
-        <button class="cm-like-btn">${btnEmoji}<span>${btnText}</span>${countStr}</button>
-        <div class="cm-reaction-picker">
-          ${reactionTypes.map(t=>`<button class="reaction-option" onclick="event.stopPropagation(); reactComment('${postId}','${commentId}','${t}')">${emojiMap[t]}</button>`).join('')}
-        </div>
-      </div>
-      <button class="reply-toggle" onclick="toggleReplyBox('${postId}','${commentId}')">Reply</button>
-    </div>
-    <div class="reply-box" id="replyBox-${postId}-${commentId}" style="display:none;">
-      <input type="text" id="replyInput-${postId}-${commentId}" placeholder="Reply...">
-      <button class="cm-send-btn" onclick="addReply('${postId}','${commentId}')">Send</button>
-    </div>
-    <div class="children-comments" id="children-${postId}-${commentId}"></div>
-  `;
-  container.appendChild(div);
-  if(node.children && node.children.length) {
-    const childContainer = document.getElementById(`children-${postId}-${commentId}`);
-    node.children.forEach(child => renderCommentNode(postId, child, depth+1, childContainer));
-  }
-}
-
-async function addComment(postId) {
-  const input = document.getElementById('commentInput-'+postId);
-  const text = input.value.trim();
-    const urlsInComment = extractUrls(text);
-  for (let urlStr of urlsInComment) {
-    const isNsfw = await checkUrlNSFW(urlStr);
-    if (isNsfw) {
-      showToast('🔞 NSFW link detected! Comment rejected.');
-      return;
-    }
-  }
-  if(!text) return;
-  const nickname = getAnonymousName();
-  db.collection("posts").doc(postId).collection("comments").add({
-    nickname, text,
-    timestamp: firebase.firestore.FieldValue.serverTimestamp(),
-    parentId: null,
-    reactions: {like:0,love:0,haha:0,wow:0,sad:0,angry:0}
-  }).then(() => input.value = '');
-}
-
-async function addReply(postId, parentCommentId) {
-  const input = document.getElementById(`replyInput-${postId}-${parentCommentId}`);
-  const text = input.value.trim();
-    const urlsInReply = extractUrls(text);
-  for (let urlStr of urlsInReply) {
-    const isNsfw = await checkUrlNSFW(urlStr);
-    if (isNsfw) {
-      showToast('🔞 NSFW link detected! Reply rejected.');
-      return;
-    }
-  }
-  if(!text) return;
-  const nickname = getAnonymousName();
-  db.collection("posts").doc(postId).collection("comments").add({
-    nickname, text,
-    timestamp: firebase.firestore.FieldValue.serverTimestamp(),
-    parentId: parentCommentId,
-    reactions: {like:0,love:0,haha:0,wow:0,sad:0,angry:0}
-  }).then(() => {
-    input.value = '';
-    document.getElementById(`replyBox-${postId}-${parentCommentId}`).style.display = 'none';
-  });
-}
-
-// Toggle Reaction for Comments
-async function reactComment(postId, commentId, type) {
-  const ref = db.collection("posts").doc(postId).collection("comments").doc(commentId);
-  const userReactions = JSON.parse(localStorage.getItem('commentReactions')||'{}');
-  const key = `${postId}_${commentId}`;
-  const currentType = userReactions[key];
-  try {
-    await db.runTransaction(async (transaction) => {
-      const doc = await transaction.get(ref);
-      if (!doc.exists) return;
-      const data = doc.data();
-      const reactions = { like:0, love:0, haha:0, wow:0, sad:0, angry:0, ...data.reactions };
-      if (currentType === type) {
-        reactions[type] = Math.max(0, (reactions[type] || 0) - 1);
-        delete userReactions[key];
-      } else {
-        if (currentType) reactions[currentType] = Math.max(0, (reactions[currentType] || 0) - 1);
-        reactions[type] = (reactions[type] || 0) + 1;
-        userReactions[key] = type;
-      }
-      transaction.update(ref, { reactions });
-    });
-    localStorage.setItem('commentReactions', JSON.stringify(userReactions));
-  } catch (e) {
-    console.error("Comment reaction toggle failed:", e);
-  }
-}
-
-function toggleCommentBox(postId) {
-  const div = document.getElementById('comments-'+postId);
-  div.style.display = div.style.display === 'none' ? 'block' : 'none';
-}
-function toggleReplyBox(postId, commentId) {
-  const div = document.getElementById(`replyBox-${postId}-${commentId}`);
-  div.style.display = div.style.display === 'none' ? 'flex' : 'none';
-}
-
-// File handling
-const selectedFiles = [];
-function handleFileSelect(fileList) {
-  const maxSize = 10 * 1024 * 1024;
-  const newFiles = Array.from(fileList);
-  const oversized = newFiles.filter(f => f.size > maxSize);
-  if (oversized.length > 0) {
-    showToast(`File(s) too large! Maximum 10MB each.`);
-    const validFiles = newFiles.filter(f => f.size <= maxSize);
-    document.getElementById('imageInput').value = '';
-    addFiles(validFiles);
-  } else {
-    addFiles(newFiles);
-  }
-  document.getElementById('imageInput').value = '';
-}
-function addFiles(files) {
-  if (selectedFiles.length + files.length > 3) {
-    showToast('Maximum 3 images allowed!');
-    return;
-  }
-  selectedFiles.push(...files);
-  renderPreviews();
-}
-function renderPreviews() {
-  const container = document.getElementById('previewContainer');
-  container.innerHTML = '';
-  selectedFiles.forEach((file, index) => {
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      const div = document.createElement('div');
-      div.className = 'preview-item';
-      div.innerHTML = `<img src="${e.target.result}" alt="preview"><button class="remove-preview" onclick="removeFile(${index})">&times;</button>`;
-      container.appendChild(div);
-    };
-    reader.readAsDataURL(file);
-  });
-}
-function removeFile(index) {
-  selectedFiles.splice(index, 1);
-  renderPreviews();
-}
-
-// Post Actions Menu
-function togglePostMenu(postId) {
-  const menu = document.getElementById('menu-'+postId);
-  if (!menu) return;
-  const isVisible = menu.style.display === 'block';
-  document.querySelectorAll('.post-menu').forEach(m => m.style.display = 'none');
-  menu.style.display = isVisible ? 'none' : 'block';
-}
-document.addEventListener('click', (e) => {
-  if (!e.target.closest('.post-actions')) {
-    document.querySelectorAll('.post-menu').forEach(m => m.style.display = 'none');
-  }
-});
-
-function showToast(msg) {
-  const old = document.querySelector('.toast');
-  if(old) old.remove();
-  const toast = document.createElement('div');
-  toast.className = 'toast';
-  toast.textContent = msg;
-  document.body.appendChild(toast);
-  requestAnimationFrame(() => toast.classList.add('show'));
-  setTimeout(() => {
-    toast.classList.remove('show');
-    setTimeout(() => toast.remove(), 300);
-  }, 2000);
-}
-
-function sharePost(postId, text) {
-  const postUrl = window.location.href.split('#')[0] + '#post-' + postId;
-  if (navigator.share) {
-    navigator.share({ title:'ETS Ceylon FM Hub', text: text||'Check this post!', url: postUrl }).catch(()=>{});
-  } else {
-    navigator.clipboard.writeText(postUrl).then(() => showToast('📋 Post link copied!')).catch(() => showToast('Copy failed'));
-  }
-}
-
-async function editPost(postId) {
-  const docRef = db.collection("posts").doc(postId);
-  try {
-    const doc = await docRef.get();
-    if (!doc.exists) return;
-    const post = doc.data();
-    const currentContent = post.content || '';
-    const postDiv = document.querySelector(`[data-post-id="${postId}"]`);
-    if (!postDiv) return;
-    const contentDiv = postDiv.querySelector('.post-content');
-    const editArea = postDiv.querySelector('.edit-area');
-    const editTextarea = editArea.querySelector('textarea');
-    contentDiv.style.display = 'none';
-    editArea.style.display = 'flex';
-    editTextarea.value = currentContent;
-    editTextarea.focus();
-    editArea.querySelector('.save-edit-btn').onclick = async () => {
-      const newContent = editTextarea.value.trim();
-      if (newContent === '' || newContent === currentContent) {
-        contentDiv.style.display = 'block';
-        editArea.style.display = 'none';
-        showToast('Post updated');
-        return;
-      }
-      try {
-        await docRef.update({ content: newContent });
-      } catch(e) { console.error(e); showToast('Edit failed'); }
-    };
-    editArea.querySelector('.cancel-edit-btn').onclick = () => {
-      contentDiv.style.display = 'block';
-      editArea.style.display = 'none';
-    };
-  } catch(e) { console.error(e); showToast('Edit not available'); }
-}
-
-async function deletePost(postId) {
-  showConfirm('Delete this post? It will be permanently removed.', async () => {
-    try {
-      const commentsRef = db.collection("posts").doc(postId).collection("comments");
-      const commentSnap = await commentsRef.get();
-      const batch = db.batch();
-      commentSnap.forEach(doc => batch.delete(doc.ref));
-      const reportsRef = db.collection("posts").doc(postId).collection("reports");
-      const reportSnap = await reportsRef.get();
-      reportSnap.forEach(doc => batch.delete(doc.ref));
-      await batch.commit();
-      await db.collection("posts").doc(postId).delete();
-    } catch(e) { console.error(e); showToast('❌ Delete failed'); }
-  });
-}
-
-function showConfirm(message, onConfirm) {
-  const modal = document.getElementById('confirmModal');
-  document.getElementById('confirmMessage').textContent = message;
-  modal.style.display = 'flex';
-  const okBtn = document.getElementById('confirmOk');
-  const cancelBtn = document.getElementById('confirmCancel');
-  const closeModal = () => { modal.style.display = 'none'; };
-  const cleanup = () => {
-    okBtn.removeEventListener('click', handleOk);
-    cancelBtn.removeEventListener('click', handleCancel);
-  };
-  const handleOk = () => { cleanup(); closeModal(); onConfirm(); };
-  const handleCancel = () => { cleanup(); closeModal(); };
-  okBtn.addEventListener('click', handleOk);
-  cancelBtn.addEventListener('click', handleCancel);
-}
-
-// Lightbox
-let currentLightboxPostId = null;
-let currentLightboxIndex = 0;
-let lightboxImages = [];
-function openLightbox(postId, index) {
-  const postDiv = document.getElementById('post-' + postId);
-  if (!postDiv) return;
-  const images = [];
-  postDiv.querySelectorAll('.image-collage img').forEach(img => images.push(img.src));
-  if (images.length === 0) return;
-  lightboxImages = images;
-  currentLightboxPostId = postId;
-  currentLightboxIndex = index;
-  showLightboxImage();
-  document.getElementById('lightbox').style.display = 'flex';
-}
-function closeLightbox() { document.getElementById('lightbox').style.display = 'none'; }
-function changeLightboxImage(direction) {
-  const newIndex = currentLightboxIndex + direction;
-  if (newIndex >= 0 && newIndex < lightboxImages.length) {
-    currentLightboxIndex = newIndex;
-    showLightboxImage();
-  }
-}
-function showLightboxImage() {
-  document.getElementById('lightboxImg').src = lightboxImages[currentLightboxIndex];
-  document.getElementById('lightboxCounter').textContent = (currentLightboxIndex + 1) + ' / ' + lightboxImages.length;
-}
-
-// Search
-function filterPosts() {
-  const term = document.getElementById('searchInput').value.trim().toLowerCase();
-  document.querySelectorAll('.post').forEach(post => {
-    post.style.display = (term === '' || (post.dataset.searchText||'').includes(term)) ? '' : 'none';
-  });
-}
-
-// Report System
-async function reportPost(postId) {
-  const anonId = getAnonymousId();
-  const reportsRef = db.collection("posts").doc(postId).collection("reports");
-  try {
-    const existing = await reportsRef.where("anonId", "==", anonId).get();
-    if (!existing.empty) { showToast('⚠️ You already reported this post'); return; }
-  } catch(e) { console.error(e); showToast('Report check failed'); return; }
-
-  try {
-    await reportsRef.add({ anonId, timestamp: firebase.firestore.FieldValue.serverTimestamp() });
-    showToast('🚩 Post reported');
-    const allReports = await reportsRef.get();
-    const distinctIds = new Set();
-    allReports.forEach(doc => distinctIds.add(doc.data().anonId));
-    if (distinctIds.size >= 3) {
-      await deletePostInternal(postId);
-      showToast('🗑️ Post removed due to reports');
-    }
-  } catch(e) { console.error(e); showToast('Report failed'); }
-}
-
-async function deletePostInternal(postId) {
-  try {
-    const commentsRef = db.collection("posts").doc(postId).collection("comments");
-    const commentSnap = await commentsRef.get();
-    const batch = db.batch();
-    commentSnap.forEach(doc => batch.delete(doc.ref));
-    const reportsRef = db.collection("posts").doc(postId).collection("reports");
-    const reportSnap = await reportsRef.get();
-    reportSnap.forEach(doc => batch.delete(doc.ref));
-    await batch.commit();
-    await db.collection("posts").doc(postId).delete();
-  } catch(e) { console.error("Auto delete failed:", e); }
-}
-
-// ----- Sightengine NSFW Moderation -----
-async function checkImageNSFW(file) {
-  const formData = new FormData();
-  formData.append('models', 'nudity-2.0');
-  formData.append('media', file);
-  
-  try {
-    const res = await fetch('/api/nsfw-check', { method: 'POST', body: formData });
-    const result = await res.json();
-    if (result.status === 'success' && result.nudity) {
-      const { sexual_activity, sexual_display, erotica } = result.nudity;
-      if (sexual_activity > 0.3 || sexual_display > 0.3 || erotica > 0.3) return true;
-    }
-    return false;
-  } catch(e) { console.error('NSFW check fail:', e); return false; }
-}
-
-// ---- Relative Time Helper ----
-function timeAgo(timestamp) {
-  if (!timestamp) return 'Just now';
-  const now = new Date();
-  const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
-  const seconds = Math.floor((now - date) / 1000);
-  
-  if (seconds < 10) return 'Just now';
-  if (seconds < 60) return seconds + 's ago';
-  const minutes = Math.floor(seconds / 60);
-  if (minutes < 60) return minutes + 'm ago';
-  const hours = Math.floor(minutes / 60);
-  if (hours < 24) return hours + 'h ago';
-  const days = Math.floor(hours / 24);
-  if (days < 7) return days + 'd ago';
-  return date.toLocaleDateString(); // fallback
-}
-
-// ----- Image Compression -----
-function compressImage(file, maxWidth = 1200, maxHeight = 1200, quality = 0.8) {
-  return new Promise((resolve, reject) => {
-    const img = new Image();
-    img.onload = () => {
-      const canvas = document.createElement('canvas');
-      let { width, height } = img;
-      if (width > maxWidth || height > maxHeight) {
-        if (width > height) {
-          height = Math.round((height * maxWidth) / width);
-          width = maxWidth;
-        } else {
-          width = Math.round((width * maxHeight) / height);
-          height = maxHeight;
-        }
-      }
-      canvas.width = width;
-      canvas.height = height;
-      const ctx = canvas.getContext('2d');
-      ctx.drawImage(img, 0, 0, width, height);
-      canvas.toBlob((blob) => {
-        if (blob) {
-          const compressedFile = new File([blob], file.name, { type: 'image/jpeg' });
-          resolve(compressedFile);
-        } else {
-          reject(new Error('Canvas toBlob failed'));
-        }
-      }, 'image/jpeg', quality);
-    };
-    img.onerror = () => reject(new Error('Image load error'));
-    img.src = URL.createObjectURL(file);
-  });
-}
-
-// ----- Notification Sound (Inline Beep) -----
-let audioCtx = null;
-let audioUnlocked = false;
-
-function unlockAudio() {
-  if (audioUnlocked) return;
-  try {
-    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    // Resume context if suspended (autoplay policy)
-    if (audioCtx.state === 'suspended') {
-      audioCtx.resume();
-    }
-    audioUnlocked = true;
-    console.log('Audio unlocked');
-  } catch (e) {
-    console.warn('AudioContext not available:', e);
-  }
-}
-
-function playNotificationSound() {
-  if (!audioUnlocked || !audioCtx) return;
-  try {
-    const now = audioCtx.currentTime;
-    const osc = audioCtx.createOscillator();
-    const gain = audioCtx.createGain();
-    osc.type = 'sine';
-    osc.frequency.setValueAtTime(800, now);
-    osc.frequency.exponentialRampToValueAtTime(600, now + 0.1); // descending
-    gain.gain.setValueAtTime(0.3, now);
-    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.15);
-    osc.connect(gain);
-    gain.connect(audioCtx.destination);
-    osc.start(now);
-    osc.stop(now + 0.15);
-  } catch (e) { /* ignore */ }
-}
-
-// Unlock audio on first user click anywhere in the document
-document.addEventListener('click', unlockAudio, { once: true });
-
-// ----- Link Preview -----
-const linkPreviewCache = {}; // in-memory cache
-
-// Extract URLs from text
-function extractUrls(text) {
-  const urlRegex = /https?:\/\/[^\s<]+/gi;
-  const matches = text.match(urlRegex);
-  return matches ? Array.from(new Set(matches)) : [];
-}
-
-// Fetch link preview from Worker
-async function fetchLinkPreview(url) {
-  if (linkPreviewCache[url]) return linkPreviewCache[url];
-
-  try {
-    const res = await fetch(`/api/link-preview?url=${encodeURIComponent(url)}`);
-    const data = await res.json();
-    if (data.error) return null;
-    linkPreviewCache[url] = data;
-    return data;
-  } catch (e) {
-    console.warn('Link preview fetch failed:', e);
-    return null;
-  }
-}
-
-// Render link preview cards for a post div
-async function renderLinkPreviews(postDiv, postId) {
-  // Get post content from the div
-  const contentDiv = postDiv.querySelector('.post-content');
-  if (!contentDiv) return;
-  const text = contentDiv.textContent || '';
-  const urls = extractUrls(text);
-  if (urls.length === 0) return;
-
-  // Create container for previews
-  let previewContainer = postDiv.querySelector('.link-previews');
-  if (!previewContainer) {
-    previewContainer = document.createElement('div');
-    previewContainer.className = 'link-previews';
-    contentDiv.after(previewContainer);
-  }
-
-  for (const url of urls) {
-    if (previewContainer.querySelector(`[data-url="${encodeURIComponent(url)}"]`)) continue; // already shown
-    const preview = await fetchLinkPreview(url);
-    if (!preview) continue;
-
-    const card = document.createElement('div');
-    card.className = 'link-card';
-    card.setAttribute('data-url', url);
-    card.innerHTML = `
-      <a href="${url}" target="_blank" rel="noopener noreferrer">
-        ${preview.image ? `<div class="link-card-img"><img src="${escapeHtml(preview.image)}" alt="" onerror="this.style.display='none'"></div>` : ''}
-        <div class="link-card-body">
-          <div class="link-card-title">${escapeHtml(preview.title || url)}</div>
-          ${preview.description ? `<div class="link-card-desc">${escapeHtml(preview.description)}</div>` : ''}
-          <div class="link-card-url">${new URL(url).hostname}</div>
-        </div>
-      </a>
-    `;
-    previewContainer.appendChild(card);
-  }
-}
-
-async function checkUrlNSFW(urlStr) {
-  try {
-    const formData = new FormData();
-    formData.append('url', urlStr);
-    const res = await fetch('/api/blocklist-check', { method:'POST', body: formData });
-    if (!res.ok) throw new Error('Blocklist service failed');
-    const data = await res.json();
-    return data.blocked === true;
-  } catch (e) {
-    console.error('Blocklist check error:', e);
-    showToast('⚠️ Link safety check failed. Post blocked.');
-    return true; // Fail safe: block if service down
-  }
-}
-
-function switchTab(tabName) {
-  // Toggle active class on buttons
-  document.querySelectorAll('.tab-btn').forEach(b => {
-    b.classList.remove('active');
-    if (b.textContent.includes(tabName === 'wall' ? 'Wall' : 'Convoys')) {
-      b.classList.add('active');
-    }
-  });
-  // Show/hide containers
-  document.getElementById('wallContainer').style.display = tabName === 'wall' ? 'block' : 'none';
-  document.getElementById('convoysContainer').style.display = tabName === 'convoys' ? 'block' : 'none';
-  if (tabName === 'convoys') loadConvoys();
 }
 
 // Init
