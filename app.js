@@ -862,5 +862,25 @@ async function renderLinkPreviews(postDiv, postId) {
   }
 }
 
+// ----- Check URL for NSFW -----
+async function checkUrlNSFW(urlStr) {
+  const formData = new FormData();
+  formData.append('url', urlStr);
+  try {
+    const res = await fetch('/api/nsfw-check', { method:'POST', body:formData });
+    const result = await res.json();
+    if (result.status === 'success' && result.nudity) {
+      const { sexual_activity, sexual_display, erotica } = result.nudity;
+      if (sexual_activity > 0.3 || sexual_display > 0.3 || erotica > 0.3) {
+        return true; // NSFW
+      }
+    }
+    return false;
+  } catch (e) {
+    console.warn('URL NSFW check failed:', e);
+    return false; // Fail open (allow)
+  }
+}
+
 // Init
 loadPosts();
