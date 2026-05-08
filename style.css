@@ -546,3 +546,121 @@ body {
 .post-content a:hover, .comment-text a:hover {
   color: #79c0ff;
 }
+
+/* Tab Navigation */
+.tab-bar {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 16px;
+}
+.tab-btn {
+    background: #0a0a0a;
+    border: 1px solid #2a2a2a;
+    color: #ccc;
+    padding: 8px 20px;
+    border-radius: 25px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 600;
+    transition: 0.2s;
+}
+.tab-btn.active {
+    background: #fff;
+    color: #000;
+    border-color: #fff;
+}
+.tab-btn:hover:not(.active) {
+    background: #1f1f1f;
+}
+
+/* Convoy Create Card */
+.convoy-create {
+    background: #0a0a0a;
+    border: 1px solid #2a2a2a;
+    border-radius: 16px;
+    padding: 20px;
+    margin-bottom: 20px;
+}
+.convoy-create h3 {
+    color: #fff;
+    margin-bottom: 12px;
+    font-size: 16px;
+}
+.convoy-create input,
+.convoy-create textarea {
+    width: 100%;
+    background: #000;
+    border: 1px solid #333;
+    border-radius: 10px;
+    padding: 10px 14px;
+    color: #fff;
+    font-size: 14px;
+    margin-bottom: 10px;
+    outline: none;
+    transition: border-color 0.2s;
+}
+.convoy-create input:focus,
+.convoy-create textarea:focus {
+    border-color: #fff;
+}
+.convoy-create button {
+    background: #fff;
+    color: #000;
+    border: none;
+    padding: 8px 20px;
+    border-radius: 10px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: 0.2s;
+}
+.convoy-create button:hover {
+    background: #e0e0e0;
+}
+
+/* Convoy Card */
+.convoy-card {
+    background: #0a0a0a;
+    border: 1px solid #2a2a2a;
+    border-radius: 12px;
+    padding: 16px;
+    margin-bottom: 12px;
+}
+.convoy-title {
+    font-size: 18px;
+    font-weight: 700;
+    color: #fff;
+    margin-bottom: 6px;
+}
+.convoy-meta {
+    font-size: 13px;
+    color: #aaa;
+    margin-bottom: 8px;
+}
+.convoy-desc {
+    font-size: 14px;
+    color: #ddd;
+    margin-bottom: 10px;
+}
+.convoy-join-btn {
+    background: #fff;
+    color: #000;
+    border: none;
+    padding: 6px 16px;
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: 0.2s;
+    font-size: 13px;
+}
+.convoy-join-btn.joined {
+    background: #238636;
+    color: #fff;
+}
+.convoy-join-btn:hover {
+    opacity: 0.8;
+}
+.convoy-participants {
+    margin-top: 8px;
+    font-size: 13px;
+    color: #aaa;
+}
