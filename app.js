@@ -77,24 +77,29 @@ async function createPost() {
     return showToast('Text or image required');
   }
 
-  // 🔞 NSFW Check – must happen before uploading
+   // 🔞 NSFW Check using Free NSFWCheckers API
   if (selectedFiles.length > 0) {
-    const model = await getNsfwModel();
-    if (model) {
-      for (let file of selectedFiles) {
-        try {
-          const img = await createImageBitmap(file);
-          const predictions = await model.classify(img);
-          const nsfwScore = predictions
-            .filter(p => ['Porn', 'Hentai', 'Sexy'].includes(p.className))
-            .reduce((sum, p) => sum + p.probability, 0);
-          if (nsfwScore > 0.6) {
-            showToast('🔞 NSFW image detected! Post rejected.');
-            return; // Stop the post
-          }
-        } catch (e) {
-          console.warn('NSFW check failed for image, skipping:', e);
+    for (let file of selectedFiles) {
+      try {
+        const formData = new FormData();
+        formData.append('image', file);
+
+        const apiResponse = await fetch('https://api.nsfwcheckers.com/v1/check', {
+          method: 'POST',
+          body: formData
+        });
+        
+        const result = await apiResponse.json();
+        console.log('NSFW Result:', result);
+        
+        // Check if result indicates NSFW content
+        if (result.nsfw || result.score > 0.7 || result.is_nsfw) {
+          showToast('🔞 NSFW image detected! Post rejected.');
+          return; // Stop post
         }
+      } catch (e) {
+        console.warn('NSFW API call failed, skipping check:', e);
+        // Continue post anyway if API fails
       }
     }
   }
@@ -636,35 +641,6 @@ async function deletePostInternal(postId) {
     await db.collection("posts").doc(postId).delete();
   } catch(e) { console.error("Auto delete failed:", e); }
 }
-
-// NSFWJS Model Loading (Public CDN Model)
-let nsfwModel = null;
-async function getNsfwModel() {
-    if (nsfwModel) return nsfwModel;
-    try {
-        // 1. Load the NSFWJS library
-        await new Promise((resolve, reject) => {
-            const script = document.createElement('script');
-            script.src = 'https://cdn.jsdelivr.net/npm/nsfwjs@2.4.2/dist/nsfwjs.min.js';
-            script.onload = resolve;
-            script.onerror = reject;
-            document.head.appendChild(script);
-        });
-        
-        // 2. Load the model from a reliable public CDN URL
-        // Option A: Official demo model (works, small size)
-        nsfwModel = await nsfwjs.load('https://cdn.jsdelivr.net/npm/nsfwjs@2.4.2/example/public/base64/');
-        // Option B: If the above fails, try the Heroku mirror (comment out A, use this)
-        // nsfwModel = await nsfwjs.load('https://nsfw-model.herokuapp.com/model/');
-        
-        console.log('NSFWJS model loaded');
-    } catch (e) {
-        console.warn('NSFWJS loading failed:', e);
-    }
-    return nsfwModel;
-}
-// Start loading in background
-getNsfwModel();
 
 // Init
 loadPosts();
