@@ -308,7 +308,7 @@ function loadPosts() {
         <div class="comments" id="comments-${postId}" style="display:none;">
           <div class="comments-list" id="commentsList-${postId}"></div>
           <div class="top-reply-box">
-            <input type="text" id="commentInput-${postId}" placeholder="Comment එකක්...">
+            <input type="text" id="commentInput-${postId}" placeholder="Write a comment...">
             <button class="cm-send-btn" onclick="addComment('${postId}')">Send</button>
           </div>
         </div>
