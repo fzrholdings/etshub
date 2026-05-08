@@ -30,7 +30,7 @@ function filterBadWords(text) {
   return filtered;
 }
 
-// Random Names
+// Random Names (for display only)
 const adjectives = ["Silent","Wild","Phantom","Turbo","Mystic","Rogue","Blazing","Iron","Dark","Cosmic","Neon","Storm","Shadow","Atomic","Frozen","Crimson","Rapid","Vortex","Zen","Lunar"];
 const nouns = ["Wolf","Eagle","Panda","Tiger","Falcon","Knight","Rider","Ghost","Drift","Beast","Hawk","Viper","Legend","Raven","Comet","Phoenix","Joker","Warden","Pilot","Nomad"];
 function generateRandomName() {
@@ -44,17 +44,17 @@ function getAnonymousName() {
   if (!name) { name = generateRandomName(); localStorage.setItem('anonName', name); }
   return name;
 }
-function getAnonymousId() {
-  let id = localStorage.getItem('anonId');
-  if (!id) {
-    id = 'anon_' + Math.random().toString(36).substr(2, 9) + Date.now().toString(36);
-    localStorage.setItem('anonId', id);
-  }
-  return id;
+
+// ----- Utility Functions -----
+function getCurrentUid() {
+  const user = firebase.auth().currentUser;
+  return user ? user.uid : null;
 }
+
 function escapeHtml(text) {
   return String(text).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
+
 async function uploadImage(file) {
   const fd = new FormData(); fd.append('image', file);
   const res = await fetch('/api/upload', { method: 'POST', body: fd });
@@ -64,8 +64,6 @@ async function uploadImage(file) {
 
 // ----- Make URLs clickable -----
 function linkifyText(text) {
-  // Assumes text is already HTML‑escaped (no < > etc.)
-  // Match URLs and wrap in anchor tags
   const urlRegex = /https?:\/\/[^\s<]+/gi;
   return text.replace(urlRegex, url => `<a href="${url}" target="_blank" rel="noopener noreferrer">${url}</a>`);
 }
@@ -74,7 +72,6 @@ function linkifyText(text) {
 async function createPost() {
   const btn = document.getElementById('postButton');
   
-  // Cooldown check (if cooldown active, ignore and don't mess with button state)
   if (isCooldownActive()) {
     showToast('Please wait 30 seconds between posts');
     return;
@@ -83,53 +80,47 @@ async function createPost() {
   const nickname = getAnonymousName();
   const content = document.getElementById('postContent').value.trim();
   
-  // Validate
   if (!content && selectedFiles.length === 0) {
     showToast('Text or image required');
     return;
   }
 
-  // --- Start loading state ---
   btn.disabled = true;
   btn.textContent = 'Posting...';
 
-    // 🔗 Scan URLs in text for NSFW
+  // Scan URLs for NSFW
   const urlsInText = extractUrls(content);
   for (let urlStr of urlsInText) {
     const isNsfwUrl = await checkUrlNSFW(urlStr);
     if (isNsfwUrl) {
       showToast('🔞 NSFW link detected! Post rejected.');
       btn.disabled = false;
-      btn.textContent = 'Post කරන්න';
+      btn.textContent = 'Post';
       return;
     }
   }
 
-  // 🔞 NSFW Check (Sightengine)
+  // NSFW image check
   if (selectedFiles.length > 0) {
     for (let file of selectedFiles) {
       const isNsfw = await checkImageNSFW(file);
       if (isNsfw) {
         showToast('🔞 NSFW image detected! Post rejected.');
         btn.disabled = false;
-        btn.textContent = 'Post කරන්න';
+        btn.textContent = 'Post';
         return;
       }
     }
   }
 
-    // 🗜️ Compress images before upload
+  // Compress images
   if (selectedFiles.length > 0) {
     try {
       for (let i = 0; i < selectedFiles.length; i++) {
         selectedFiles[i] = await compressImage(selectedFiles[i]);
       }
-      // Update previews with compressed thumbnails
       renderPreviews();
-    } catch (e) {
-      console.warn('Image compression failed, using originals:', e);
-      // fallback to original files (already in selectedFiles)
-    }
+    } catch (e) { /* fallback */ }
   }
 
   // Upload images
@@ -143,12 +134,12 @@ async function createPost() {
     } catch (e) {
       showToast('Image upload fail');
       btn.disabled = false;
-      btn.textContent = 'Post කරන්න';
+      btn.textContent = 'Post';
       return;
     }
   }
 
-  // Save to Firestore
+  // Save to Firestore with ownerUid
   try {
     await db.collection("posts").add({
       nickname,
@@ -156,13 +147,12 @@ async function createPost() {
       imageUrls,
       imageUrl: null,
       timestamp: firebase.firestore.FieldValue.serverTimestamp(),
-      reactions: { like:0, love:0, haha:0, wow:0, sad:0, angry:0 }
+      reactions: { like:0, love:0, haha:0, wow:0, sad:0, angry:0 },
+      ownerUid: getCurrentUid()    // <-- ownership
     });
     
-    // Success – start cooldown (will disable button with countdown)
     startCooldown(30000);
     
-    // Reset form
     document.getElementById('postContent').value = '';
     selectedFiles.length = 0;
     renderPreviews();
@@ -171,7 +161,7 @@ async function createPost() {
     console.error('Post fail:', e);
     showToast('Posting failed');
     btn.disabled = false;
-    btn.textContent = 'Post කරන්න';
+    btn.textContent = 'Post';
   }
 }
 
@@ -195,7 +185,7 @@ function runCooldownTimer(expireTime) {
     const remaining = Math.max(0, expireTime - Date.now());
     if (remaining <= 0) {
       btn.disabled = false;
-      btn.textContent = 'Post කරන්න';
+      btn.textContent = 'Post';
       localStorage.removeItem('postCooldown');
       return;
     }
@@ -216,7 +206,6 @@ function loadPosts() {
     const container = document.getElementById('postsContainer');
     container.innerHTML = '';
 
-    // Play sound only for new posts added after initial load
     if (initialLoadDone) {
       snapshot.docChanges().forEach(change => {
         if (change.type === 'added' && !change.doc.metadata.hasPendingWrites) {
@@ -239,7 +228,6 @@ function loadPosts() {
       });
       const emojiMap = { like: '👍', love: '❤️', haha: '😆', wow: '😮', sad: '😢', angry: '😠' };
       const btnEmoji = userReactType ? emojiMap[userReactType] : (totalReactions > 0 ? emojiMap[top] : '👍');
-      const btnText = userReactType ? userReactType.charAt(0).toUpperCase() + userReactType.slice(1) : (totalReactions > 0 ? top.charAt(0).toUpperCase() + top.slice(1) : 'Like');
       const countStr = totalReactions > 0 ? ' · ' + totalReactions : '';
 
       const div = document.createElement('div');
@@ -256,8 +244,8 @@ function loadPosts() {
             <button onclick="togglePostMenu('${postId}')" class="menu-btn">⋮</button>
             <div class="post-menu" id="menu-${postId}" style="display:none;">
               <button onclick="sharePost('${postId}', '${escapeHtml(post.content || '')}')">Share</button>
-              ${post.nickname !== getAnonymousName() ? `<button onclick="reportPost('${postId}')">Report</button>` : ''}
-              ${post.nickname === getAnonymousName() ? `
+              ${post.ownerUid !== getCurrentUid() ? `<button onclick="reportPost('${postId}')">Report</button>` : ''}
+              ${post.ownerUid === getCurrentUid() ? `
                 <button onclick="editPost('${postId}')">Edit</button>
                 <button onclick="deletePost('${postId}')">Delete</button>
               ` : ''}
@@ -284,26 +272,26 @@ function loadPosts() {
           </div>
         ` : ''}
         <div class="reaction-wrapper">
-  <button class="like-btn ${userReactType ? 'reacted' : ''}">
-    <span class="reaction-icon">
-      ${userReactType 
-        ? emojiMap[userReactType] 
-        : (totalReactions > 0 
-            ? emojiMap[top] 
-            : `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3H14zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"/></svg>`)
-      }
-    </span>
-    ${totalReactions > 0 ? `<span class="reaction-count">${totalReactions}</span>` : ''}
-  </button>
-  <div class="reaction-picker">
-    ${reactionTypes.map(t => {
-      const count = post.reactions?.[t] || 0;
-      return `<button class="reaction-option" onclick="event.stopPropagation(); reactPost('${postId}','${t}')" title="${t.charAt(0).toUpperCase()+t.slice(1)}">
-        ${emojiMap[t]}${count > 0 ? `<small>${count}</small>` : ''}
-      </button>`;
-    }).join('')}
-  </div>
-</div>
+          <button class="like-btn ${userReactType ? 'reacted' : ''}">
+            <span class="reaction-icon">
+              ${userReactType 
+                ? emojiMap[userReactType] 
+                : (totalReactions > 0 
+                    ? emojiMap[top] 
+                    : `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3H14zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"/></svg>`)
+              }
+            </span>
+            ${totalReactions > 0 ? `<span class="reaction-count">${totalReactions}</span>` : ''}
+          </button>
+          <div class="reaction-picker">
+            ${reactionTypes.map(t => {
+              const count = post.reactions?.[t] || 0;
+              return `<button class="reaction-option" onclick="event.stopPropagation(); reactPost('${postId}','${t}')" title="${t.charAt(0).toUpperCase()+t.slice(1)}">
+                ${emojiMap[t]}${count > 0 ? `<small>${count}</small>` : ''}
+              </button>`;
+            }).join('')}
+          </div>
+        </div>
         <button class="comment-toggle-btn" onclick="toggleCommentBox('${postId}')">💬 Comment</button>
         <div class="comments" id="comments-${postId}" style="display:none;">
           <div class="comments-list" id="commentsList-${postId}"></div>
@@ -315,7 +303,7 @@ function loadPosts() {
       `;
       div.dataset.searchText = (post.content + ' ' + post.nickname).toLowerCase();
       container.appendChild(div);
-      renderLinkPreviews(div, postId); // async, no need to await
+      renderLinkPreviews(div, postId);
       loadComments(postId);
     });
 
@@ -333,7 +321,6 @@ function loadPosts() {
       }, 300);
     }
 
-    // Mark initial load done (so future snapshots trigger sound)
     initialLoadDone = true;
   });
 }
@@ -399,7 +386,6 @@ function renderCommentNode(postId, node, depth, container) {
   let top='like', topCount=0;
   reactionTypes.forEach(t=>{const c=node.reactions?.[t]||0; if(c>topCount){topCount=c;top=t;}});
   const btnEmoji = userReactType ? emojiMap[userReactType] : (totalReactions>0?emojiMap[top]:'👍');
-  const btnText = userReactType ? userReactType.charAt(0).toUpperCase()+userReactType.slice(1) : (totalReactions>0?top.charAt(0).toUpperCase()+top.slice(1):'Like');
   const countStr = totalReactions>0?' · '+totalReactions:'';
 
   const div = document.createElement('div');
@@ -410,26 +396,25 @@ function renderCommentNode(postId, node, depth, container) {
     <div class="comment-body">
       <strong>${escapeHtml(node.nickname||'Anon')}:</strong> <span class="comment-text">${linkifyText(filterBadWords(escapeHtml(node.text)))}</span>
       <div class="cm-reaction-wrapper">
-  <button class="cm-like-btn ${userReactType ? 'reacted' : ''}">
-    <span class="reaction-icon">
-      ${userReactType 
-        ? emojiMap[userReactType] 
-        : (totalReactions > 0 
-            ? emojiMap[top] 
-            : `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3H14zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"/></svg>`)
-      }
-    </span>
-    ${totalReactions > 0 ? `<span class="reaction-count">${totalReactions}</span>` : ''}
-  </button>
-  <div class="cm-reaction-picker">
-    ${reactionTypes.map(t => {
-      const count = node.reactions?.[t] || 0;
-      return `<button class="reaction-option" onclick="event.stopPropagation(); reactComment('${postId}','${commentId}','${t}')" title="${t.charAt(0).toUpperCase()+t.slice(1)}">
-        ${emojiMap[t]}${count > 0 ? `<small>${count}</small>` : ''}
-      </button>`;
-    }).join('')}
-  </div>
-</div>
+        <button class="cm-like-btn ${userReactType ? 'reacted' : ''}">
+          <span class="reaction-icon">
+            ${userReactType 
+              ? emojiMap[userReactType] 
+              : (totalReactions > 0 
+                  ? emojiMap[top] 
+                  : `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3H14zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"/></svg>`)
+            }
+          </span>
+          ${totalReactions > 0 ? `<span class="reaction-count">${totalReactions}</span>` : ''}
+        </button>
+        <div class="cm-reaction-picker">
+          ${reactionTypes.map(t => {
+            const count = node.reactions?.[t] || 0;
+            return `<button class="reaction-option" onclick="event.stopPropagation(); reactComment('${postId}','${commentId}','${t}')" title="${t.charAt(0).toUpperCase()+t.slice(1)}">
+              ${emojiMap[t]}${count > 0 ? `<small>${count}</small>` : ''}
+            </button>`;
+          }).join('')}
+        </div>
       </div>
       <button class="reply-toggle" onclick="toggleReplyBox('${postId}','${commentId}')">Reply</button>
       
@@ -437,7 +422,7 @@ function renderCommentNode(postId, node, depth, container) {
       <div class="comment-actions">
         <button onclick="toggleCommentMenu('${postId}','${commentId}')" class="cm-menu-btn">⋮</button>
         <div class="cm-menu" id="cmenu-${commentId}" style="display:none;">
-          ${node.anonId === getAnonymousId() ? `
+          ${node.ownerUid === getCurrentUid() ? `
             <button onclick="editComment('${postId}','${commentId}')">Edit</button>
             <button onclick="deleteComment('${postId}','${commentId}')">Delete</button>
           ` : `<button onclick="reportComment('${postId}','${commentId}')">Report</button>`}
@@ -462,7 +447,7 @@ function renderCommentNode(postId, node, depth, container) {
 async function addComment(postId) {
   const input = document.getElementById('commentInput-'+postId);
   const text = input.value.trim();
-  const urlsInComment = extractUrls(text);   // NSFW check…
+  const urlsInComment = extractUrls(text);
   for (let urlStr of urlsInComment) {
     const isNsfw = await checkUrlNSFW(urlStr);
     if (isNsfw) {
@@ -472,10 +457,10 @@ async function addComment(postId) {
   }
   if(!text) return;
   const nickname = getAnonymousName();
-  const anonId = getAnonymousId();   // <-- add this line
+  const uid = getCurrentUid();
   db.collection("posts").doc(postId).collection("comments").add({
     nickname,
-    anonId,   // <-- add this field
+    ownerUid: uid,
     text,
     timestamp: firebase.firestore.FieldValue.serverTimestamp(),
     parentId: null,
@@ -496,10 +481,10 @@ async function addReply(postId, parentCommentId) {
   }
   if(!text) return;
   const nickname = getAnonymousName();
-  const anonId = getAnonymousId();   // <-- add
+  const uid = getCurrentUid();
   db.collection("posts").doc(postId).collection("comments").add({
     nickname,
-    anonId,   // <-- add
+    ownerUid: uid,
     text,
     timestamp: firebase.firestore.FieldValue.serverTimestamp(),
     parentId: parentCommentId,
@@ -732,21 +717,21 @@ function filterPosts() {
   });
 }
 
-// Report System
+// Report System (using ownerUid)
 async function reportPost(postId) {
-  const anonId = getAnonymousId();
+  const uid = getCurrentUid();
   const reportsRef = db.collection("posts").doc(postId).collection("reports");
   try {
-    const existing = await reportsRef.where("anonId", "==", anonId).get();
+    const existing = await reportsRef.where("reporterUid", "==", uid).get();
     if (!existing.empty) { showToast('⚠️ You already reported this post'); return; }
   } catch(e) { console.error(e); showToast('Report check failed'); return; }
 
   try {
-    await reportsRef.add({ anonId, timestamp: firebase.firestore.FieldValue.serverTimestamp() });
+    await reportsRef.add({ reporterUid: uid, timestamp: firebase.firestore.FieldValue.serverTimestamp() });
     showToast('🚩 Post reported');
     const allReports = await reportsRef.get();
     const distinctIds = new Set();
-    allReports.forEach(doc => distinctIds.add(doc.data().anonId));
+    allReports.forEach(doc => distinctIds.add(doc.data().reporterUid));
     if (distinctIds.size >= 3) {
       await deletePostInternal(postId);
       showToast('🗑️ Post removed due to reports');
@@ -800,7 +785,7 @@ function timeAgo(timestamp) {
   if (hours < 24) return hours + 'h ago';
   const days = Math.floor(hours / 24);
   if (days < 7) return days + 'd ago';
-  return date.toLocaleDateString(); // fallback
+  return date.toLocaleDateString();
 }
 
 // ----- Image Compression -----
@@ -845,7 +830,6 @@ function unlockAudio() {
   if (audioUnlocked) return;
   try {
     audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    // Resume context if suspended (autoplay policy)
     if (audioCtx.state === 'suspended') {
       audioCtx.resume();
     }
@@ -864,7 +848,7 @@ function playNotificationSound() {
     const gain = audioCtx.createGain();
     osc.type = 'sine';
     osc.frequency.setValueAtTime(800, now);
-    osc.frequency.exponentialRampToValueAtTime(600, now + 0.1); // descending
+    osc.frequency.exponentialRampToValueAtTime(600, now + 0.1);
     gain.gain.setValueAtTime(0.3, now);
     gain.gain.exponentialRampToValueAtTime(0.01, now + 0.15);
     osc.connect(gain);
@@ -874,23 +858,19 @@ function playNotificationSound() {
   } catch (e) { /* ignore */ }
 }
 
-// Unlock audio on first user click anywhere in the document
 document.addEventListener('click', unlockAudio, { once: true });
 
 // ----- Link Preview -----
-const linkPreviewCache = {}; // in-memory cache
+const linkPreviewCache = {};
 
-// Extract URLs from text
 function extractUrls(text) {
   const urlRegex = /https?:\/\/[^\s<]+/gi;
   const matches = text.match(urlRegex);
   return matches ? Array.from(new Set(matches)) : [];
 }
 
-// Fetch link preview from Worker
 async function fetchLinkPreview(url) {
   if (linkPreviewCache[url]) return linkPreviewCache[url];
-
   try {
     const res = await fetch(`/api/link-preview?url=${encodeURIComponent(url)}`);
     const data = await res.json();
@@ -903,16 +883,13 @@ async function fetchLinkPreview(url) {
   }
 }
 
-// Render link preview cards for a post div
 async function renderLinkPreviews(postDiv, postId) {
-  // Get post content from the div
   const contentDiv = postDiv.querySelector('.post-content');
   if (!contentDiv) return;
   const text = contentDiv.textContent || '';
   const urls = extractUrls(text);
   if (urls.length === 0) return;
 
-  // Create container for previews
   let previewContainer = postDiv.querySelector('.link-previews');
   if (!previewContainer) {
     previewContainer = document.createElement('div');
@@ -921,7 +898,7 @@ async function renderLinkPreviews(postDiv, postId) {
   }
 
   for (const url of urls) {
-    if (previewContainer.querySelector(`[data-url="${encodeURIComponent(url)}"]`)) continue; // already shown
+    if (previewContainer.querySelector(`[data-url="${encodeURIComponent(url)}"]`)) continue;
     const preview = await fetchLinkPreview(url);
     if (!preview) continue;
 
@@ -953,22 +930,21 @@ async function checkUrlNSFW(urlStr) {
   } catch (e) {
     console.error('Blocklist check error:', e);
     showToast('⚠️ Link safety check failed. Post blocked.');
-    return true; // Fail safe: block if service down
+    return true;
   }
 }
 
 // ========== Advanced Convoy Planner ==========
-let allConvoysData = []; // store for search
+// (Convoy functions unchanged except for using getCurrentUid() in toggleJoinConvoy)
+let allConvoysData = [];
 
 function switchTab(tabName) {
-  // Toggle active class on buttons
   document.querySelectorAll('.tab-btn').forEach(b => {
     b.classList.remove('active');
     if (b.textContent.includes(tabName === 'wall' ? 'Wall' : 'Convoys')) {
       b.classList.add('active');
     }
   });
-  // Show/hide containers
   document.getElementById('wallContainer').style.display = tabName === 'wall' ? 'block' : 'none';
   document.getElementById('convoysContainer').style.display = tabName === 'convoys' ? 'block' : 'none';
   if (tabName === 'convoys') loadConvoys();
@@ -983,15 +959,12 @@ async function createConvoy() {
   const desc = document.getElementById('convoyDesc').value.trim();
   const type = document.getElementById('convoyType').value;
   
-  // DLCs
   const dlcCheckboxes = document.querySelectorAll('.dlc-checkboxes input:checked');
   const dlcs = Array.from(dlcCheckboxes).map(cb => cb.value);
   
-  // Tags
   const tagsStr = document.getElementById('convoyTags').value.trim();
   const tags = tagsStr ? tagsStr.split(',').map(t => t.trim()).filter(t => t) : [];
   
-  // Route image
   const fileInput = document.getElementById('convoyImageInput');
   let routeImageUrl = null;
   if (fileInput.files[0]) {
@@ -1025,7 +998,6 @@ async function createConvoy() {
       participants: {},
       recurring: document.getElementById('convoyRecurring').value
     });
-    // Clear form
     document.getElementById('convoyTitle').value = '';
     document.getElementById('convoyServer').value = '';
     document.getElementById('convoyMeeting').value = '';
@@ -1070,12 +1042,10 @@ function renderConvoyCards(convoys) {
   }
   convoys.forEach(convoy => {
     const convoyId = convoy.id;
-    const anonId = getAnonymousId();
+    const uid = getCurrentUid();
     const participants = convoy.participants || {};
-    const isJoined = !!participants[anonId];
-    const participantNames = Object.keys(participants); // array of anonIds, we need to map to names? anonId != name, so we can't show names directly without storing names. We'll store names in participants object { [anonId]: name }.
-    // For now, we'll just show count. To show names, we need to store name as well. We'll update the join function to store name.
-    const count = participantNames.length;
+    const isJoined = !!participants[uid];
+    const count = Object.keys(participants).length;
     const maxSlots = convoy.maxSlots || 0;
     const slotsText = maxSlots > 0 ? `${count}/${maxSlots}` : `${count}`;
 
@@ -1092,13 +1062,13 @@ function renderConvoyCards(convoys) {
         <span>👥 ${slotsText} trucks</span>
         ${convoy.type ? `<span>🔒 ${convoy.type.toUpperCase()}</span>` : ''}
         <button onclick="toggleConvoyChat('${convoyId}')" style="background: none; border: 1px solid #333; color: #ccc; padding: 4px 10px; border-radius: 6px; font-size: 12px; margin-left: 8px;">💬 Chat</button>
-<div class="convoy-chat" id="chat-${convoyId}" style="display:none;">
-  <div class="chat-messages" id="chatMessages-${convoyId}"></div>
-  <div style="display:flex; gap:4px;">
-    <input type="text" id="chatInput-${convoyId}" placeholder="Type..." style="flex:1;">
-    <button onclick="sendChatMessage('${convoyId}')" class="cm-send-btn">Send</button>
-  </div>
-</div>
+        <div class="convoy-chat" id="chat-${convoyId}" style="display:none;">
+          <div class="chat-messages" id="chatMessages-${convoyId}"></div>
+          <div style="display:flex; gap:4px;">
+            <input type="text" id="chatInput-${convoyId}" placeholder="Type..." style="flex:1;">
+            <button onclick="sendChatMessage('${convoyId}')" class="cm-send-btn">Send</button>
+          </div>
+        </div>
       </div>
       ${convoy.description ? `<div class="convoy-desc">${escapeHtml(convoy.description)}</div>` : ''}
       ${convoy.routeImage ? `<img src="${escapeHtml(convoy.routeImage)}" class="convoy-route-img" alt="Route Map" onclick="window.open(this.src)">` : ''}
@@ -1111,8 +1081,8 @@ function renderConvoyCards(convoys) {
 
 async function toggleJoinConvoy(convoyId) {
   const ref = db.collection("convoys").doc(convoyId);
-  const anonId = getAnonymousId();
-  const anonName = getAnonymousName(); // store name with join
+  const uid = getCurrentUid();
+  const anonName = getAnonymousName();
   
   try {
     await db.runTransaction(async (transaction) => {
@@ -1120,10 +1090,10 @@ async function toggleJoinConvoy(convoyId) {
       if (!doc.exists) return;
       const data = doc.data();
       const participants = { ...data.participants };
-      if (participants[anonId]) {
-        delete participants[anonId];
+      if (participants[uid]) {
+        delete participants[uid];
       } else {
-        participants[anonId] = anonName; // store name for display
+        participants[uid] = anonName;
       }
       transaction.update(ref, { participants });
     });
@@ -1133,7 +1103,6 @@ async function toggleJoinConvoy(convoyId) {
   }
 }
 
-// Search filter
 function filterConvoys() {
   const term = document.getElementById('convoySearch').value.trim().toLowerCase();
   if (!term) { renderConvoyCards(allConvoysData); return; }
@@ -1178,9 +1147,8 @@ function filterByDate(dateStr) {
   const filtered = allConvoysData.filter(c => c.datetime.toDate().toISOString().slice(0,10) === dateStr);
   if (filtered.length > 0) {
     showToast(`Showing convoys on ${dateStr}`);
-    // Switch to list view and show only those
-    showCalendar = true; toggleConvoyView(); // force list
-    renderConvoyCards(filtered); // override display
+    showCalendar = true; toggleConvoyView();
+    renderConvoyCards(filtered);
   } else {
     showToast('No convoys on this day');
   }
@@ -1217,7 +1185,6 @@ async function sendChatMessage(id) {
   input.value = '';
 }
 
-// Show toast for convoys starting in < 5 minutes
 setInterval(() => {
   const now = Date.now();
   allConvoysData.forEach(c => {
@@ -1225,16 +1192,14 @@ setInterval(() => {
     const diff = start - now;
     if (diff > 0 && diff < 5 * 60 * 1000 && !c._toastShown) {
       showToast(`⏰ ${c.title} starts in ${Math.ceil(diff/60000)} min!`);
-      c._toastShown = true; // prevent repeat in this session
+      c._toastShown = true;
     }
   });
-}, 30000); // check every 30 seconds
+}, 30000);
 
-// After loading convoys, auto-generate next instance for recurring past ones
 function handleRecurring() {
   allConvoysData.forEach(async c => {
     if (c.recurring === 'weekly' && c.datetime.toDate().getTime() < Date.now() && !c.recurrenceCreated) {
-      // Check if we already created the next occurrence
       const existing = allConvoysData.find(ec => 
         ec.title === c.title && 
         ec.datetime.toDate().getTime() > Date.now() &&
@@ -1246,14 +1211,13 @@ function handleRecurring() {
           ...c,
           datetime: firebase.firestore.Timestamp.fromDate(newDate),
           participants: {},
-          recurrenceCreated: true // flag to avoid loop
+          recurrenceCreated: true
         });
         showToast(`📅 Next week's convoy "${c.title}" created automatically`);
       }
     }
   });
 }
-// Call handleRecurring() after loadConvoys (inside onSnapshot after renderConvoyCards maybe)
 
 // ========== Admin Mode ==========
 const ADMIN_SESSION_KEY = 'etshub_admin_session';
@@ -1294,9 +1258,12 @@ async function promptAdminPassword() {
   }
 }
 
+// Note: admin delete functions now may fail due to Firestore rules.
+// They will be effective only if rules allow delete for anyone.
+// For now, keep them until Worker admin endpoint is implemented.
 async function adminDeletePost(postId) {
   if (!confirm('Admin: permanently delete this post?')) return;
-  await deletePostInternal(postId); // reuse internal delete (no confirm)
+  await deletePostInternal(postId);
 }
 
 async function adminDeleteComment(postId, commentId) {
@@ -1344,14 +1311,12 @@ document.addEventListener('click', (e) => {
 async function editComment(postId, commentId) {
   const ref = db.collection("posts").doc(postId).collection("comments").doc(commentId);
   
-  // Find the comment element
   const commentDiv = document.querySelector(`[data-comment-id="${postId}_${commentId}"]`);
   if (!commentDiv) return;
   
   const textSpan = commentDiv.querySelector('.comment-text');
   if (!textSpan) return;
   
-  // Create edit area
   const editArea = document.createElement('div');
   editArea.className = 'comment-edit-area';
   editArea.innerHTML = `
@@ -1362,18 +1327,15 @@ async function editComment(postId, commentId) {
     </div>
   `;
   
-  // Hide original text, show edit
   textSpan.style.display = 'none';
   textSpan.parentNode.insertBefore(editArea, textSpan.nextSibling);
   
   const textarea = editArea.querySelector('.comment-edit-textarea');
   textarea.focus();
   
-  // Save action
   editArea.querySelector('.save-comment-edit-btn').onclick = async () => {
     const newText = textarea.value.trim();
     if (newText === '' || newText === textSpan.textContent.trim()) {
-      // Cancel editing
       textSpan.style.display = '';
       editArea.remove();
       return;
@@ -1381,14 +1343,12 @@ async function editComment(postId, commentId) {
     try {
       await ref.update({ text: newText });
       showToast('Comment updated');
-      // onSnapshot will rebuild the comment, removing edit area automatically
     } catch(e) {
       console.error(e);
       showToast('Edit failed');
     }
   };
   
-  // Cancel action
   editArea.querySelector('.cancel-comment-edit-btn').onclick = () => {
     textSpan.style.display = '';
     editArea.remove();
@@ -1405,25 +1365,24 @@ async function deleteComment(postId, commentId) {
 
 async function reportComment(postId, commentId) {
   showToast('🚩 Comment reported. Moderators will review.');
-  // Optional: Add report subcollection similar to posts.
 }
 
-// ========== Online Presence (Firestore, 30s interval) ==========
+// ========== Online Presence (Firestore, 30s) ==========
 const presenceRef = db.collection("presence");
 
 function updatePresence() {
-  const anonId = getAnonymousId();
-  presenceRef.doc(anonId).set({
+  const uid = getCurrentUid();
+  if (!uid) return;
+  presenceRef.doc(uid).set({
     lastActive: firebase.firestore.FieldValue.serverTimestamp()
   }, { merge: true }).catch(() => {});
 }
 
-// Update every 30 seconds
 setInterval(updatePresence, 30000);
-updatePresence(); // initial call
+updatePresence();
 
 function listenOnlineCount() {
-  presenceRef.where("lastActive", ">", new Date(Date.now() - 40000)) // 40s window
+  presenceRef.where("lastActive", ">", new Date(Date.now() - 40000))
     .onSnapshot(snap => {
       const count = snap.size;
       const el = document.getElementById('onlineCount');
