@@ -106,24 +106,43 @@ function loadPosts() {
   });
 }
 
+// ---- Toggle Reaction for Posts ----
 async function reactPost(postId, type) {
   const ref = db.collection("posts").doc(postId);
+  const userReactions = JSON.parse(localStorage.getItem('postReactions')||'{}');
+  const currentType = userReactions[postId];
+  
   try {
-    await db.runTransaction(async t=>{
-      const doc = await t.get(ref);
-      if(!doc.exists) return;
+    await db.runTransaction(async (transaction) => {
+      const doc = await transaction.get(ref);
+      if (!doc.exists) return;
       const data = doc.data();
-      const reactions = {like:0,love:0,haha:0,wow:0,sad:0,angry:0, ...data.reactions};
-      reactions[type]++;
-      t.update(ref,{reactions});
+      const reactions = { like:0, love:0, haha:0, wow:0, sad:0, angry:0, ...data.reactions };
+      
+      if (currentType === type) {
+        // Same reaction clicked → remove
+        reactions[type] = Math.max(0, (reactions[type] || 0) - 1);
+        delete userReactions[postId];
+      } else {
+        // Different or no reaction → add new, remove old if any
+        if (currentType) {
+          reactions[currentType] = Math.max(0, (reactions[currentType] || 0) - 1);
+        }
+        reactions[type] = (reactions[type] || 0) + 1;
+        userReactions[postId] = type;
+      }
+      
+      transaction.update(ref, { reactions });
     });
-    let userReactions = JSON.parse(localStorage.getItem('postReactions')||'{}');
-    userReactions[postId] = type;
+    
     localStorage.setItem('postReactions', JSON.stringify(userReactions));
-  } catch(e){console.error(e);}
+    // onSnapshot will automatically re-render UI
+  } catch (e) {
+    console.error("Reaction toggle failed:", e);
+  }
 }
 
-// ---- Real‑time Comment System ----
+// ---- Real‑time Comment System with toggle reactions ----
 function loadComments(postId) {
   db.collection("posts").doc(postId).collection("comments")
     .orderBy("timestamp","asc")
@@ -218,21 +237,41 @@ function addReply(postId, parentCommentId) {
   });
 }
 
+// ---- Toggle Reaction for Comments ----
 async function reactComment(postId, commentId, type) {
   const ref = db.collection("posts").doc(postId).collection("comments").doc(commentId);
+  const userReactions = JSON.parse(localStorage.getItem('commentReactions')||'{}');
+  const key = `${postId}_${commentId}`;
+  const currentType = userReactions[key];
+  
   try {
-    await db.runTransaction(async t=>{
-      const doc = await t.get(ref);
-      if(!doc.exists) return;
+    await db.runTransaction(async (transaction) => {
+      const doc = await transaction.get(ref);
+      if (!doc.exists) return;
       const data = doc.data();
-      const reactions = {like:0,love:0,haha:0,wow:0,sad:0,angry:0, ...data.reactions};
-      reactions[type]++;
-      t.update(ref,{reactions});
+      const reactions = { like:0, love:0, haha:0, wow:0, sad:0, angry:0, ...data.reactions };
+      
+      if (currentType === type) {
+        // Remove reaction
+        reactions[type] = Math.max(0, (reactions[type] || 0) - 1);
+        delete userReactions[key];
+      } else {
+        // Add new, remove old if exists
+        if (currentType) {
+          reactions[currentType] = Math.max(0, (reactions[currentType] || 0) - 1);
+        }
+        reactions[type] = (reactions[type] || 0) + 1;
+        userReactions[key] = type;
+      }
+      
+      transaction.update(ref, { reactions });
     });
-    let userReactions = JSON.parse(localStorage.getItem('commentReactions')||'{}');
-    userReactions[`${postId}_${commentId}`] = type;
+    
     localStorage.setItem('commentReactions', JSON.stringify(userReactions));
-  } catch(e){console.error(e);}
+    // UI re-renders via onSnapshot
+  } catch (e) {
+    console.error("Comment reaction toggle failed:", e);
+  }
 }
 
 function toggleCommentBox(postId) {
