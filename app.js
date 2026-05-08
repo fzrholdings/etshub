@@ -14,8 +14,6 @@ const db = firebase.firestore();
 const auth = firebase.auth();
 auth.signInAnonymously().catch(console.error);
 
-const IMGBB_API_KEY = "2e6555f84f2cba4982c98e35ff987554";
-
 // ----- Bad Word Filter -----
 const badWords = [
   'fuck', 'shit', 'ass', 'bitch', 'bastard', 'dick', 'piss', 'pussy', 'motherfucker', 'cunt', 'asshole', 'jerk', 'sex', 'niggar',
@@ -59,7 +57,7 @@ function escapeHtml(text) {
 }
 async function uploadImage(file) {
   const fd = new FormData(); fd.append('image', file);
-  const res = await fetch(`https://api.imgbb.com/1/upload?key=${IMGBB_API_KEY}`, {method:'POST', body:fd});
+  const res = await fetch('/api/upload', { method: 'POST', body: fd });
   const data = await res.json();
   return data.data.url;
 }
@@ -649,35 +647,20 @@ async function deletePostInternal(postId) {
 }
 
 // ----- Sightengine NSFW Moderation -----
-const SIGHTENGINE_API_USER = "1778458502";
-const SIGHTENGINE_API_SECRET = "598QXkS4TcXXbfKTfDVMKxRomCbTomvr";
-
 async function checkImageNSFW(file) {
   const formData = new FormData();
-  formData.append('api_user', '1778458502');
-  formData.append('api_secret', '598QXkS4TcXXbfKTfDVMKxRomCbTomvr');
-  formData.append('models', 'nudity-2.0'); // නිවැරදි model name
-  formData.append('media', file); // ⚠️ field name "media" විය යුතුයි
-
+  formData.append('models', 'nudity-2.0');
+  formData.append('media', file);
+  
   try {
-    const response = await fetch('https://api.sightengine.com/1.0/check.json', {
-      method: 'POST',
-      body: formData
-    });
-    const result = await response.json();
-    console.log('Sightengine result:', result);
-    
+    const res = await fetch('/api/nsfw-check', { method: 'POST', body: formData });
+    const result = await res.json();
     if (result.status === 'success' && result.nudity) {
       const { sexual_activity, sexual_display, erotica } = result.nudity;
-      if (sexual_activity > 0.3 || sexual_display > 0.3 || erotica > 0.3) {
-        return true; // NSFW
-      }
+      if (sexual_activity > 0.3 || sexual_display > 0.3 || erotica > 0.3) return true;
     }
-    return false; // Safe
-  } catch (e) {
-    console.error('Sightengine error:', e);
-    return false; // Fail safe (allow post)
-  }
+    return false;
+  } catch(e) { console.error('NSFW check fail:', e); return false; }
 }
 
 // Init
