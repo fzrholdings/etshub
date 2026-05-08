@@ -260,6 +260,7 @@ function loadPosts() {
               ${post.nickname === getAnonymousName() ? `
                 <button onclick="editPost('${postId}')">Edit</button>
                 <button onclick="deletePost('${postId}')">Delete</button>
+                ${isAdmin() ? `<button onclick="adminDeletePost('${postId}')">🗑️ Delete (Admin)</button>` : ''}
               ` : ''}
             </div>
           </div>
@@ -399,6 +400,7 @@ function renderCommentNode(postId, node, depth, container) {
         </div>
       </div>
       <button class="reply-toggle" onclick="toggleReplyBox('${postId}','${commentId}')">Reply</button>
+      ${isAdmin() ? `<button onclick="adminDeleteComment('${postId}','${commentId}')" style="background:none;border:none;color:#e94560;font-size:10px;padding:0 4px;">🗑️</button>` : ''}
     </div>
     <div class="reply-box" id="replyBox-${postId}-${commentId}" style="display:none;">
       <input type="text" id="replyInput-${postId}-${commentId}" placeholder="Reply...">
@@ -1249,3 +1251,80 @@ loadPosts();
     loadConvoys();
   }
 })();
+
+// ========== Admin Mode ==========
+const ADMIN_SESSION_KEY = 'etshub_admin_session';
+
+async function promptAdminPassword() {
+  const password = prompt('Enter admin password:');
+  if (!password) return;
+  const formData = new FormData();
+  formData.append('password', password);
+  try {
+    const res = await fetch('/api/admin', { method:'POST', body:formData });
+    const data = await res.json();
+    if (data.success) {
+      localStorage.setItem(ADMIN_SESSION_KEY, 'true');
+      showToast('🔓 Admin mode activated');
+      location.reload();
+    } else {
+      alert('❌ Wrong password!');
+    }
+  } catch(e) {
+    alert('Network error');
+  }
+}
+
+function isAdmin() {
+  return localStorage.getItem(ADMIN_SESSION_KEY) === 'true';
+}
+
+function logoutAdmin() {
+  localStorage.removeItem(ADMIN_SESSION_KEY);
+  location.reload();
+}
+
+function checkAdminPanel() {
+  if (isAdmin()) {
+    const panel = document.getElementById('adminPanel');
+    if (panel) panel.style.display = 'block';
+  }
+}
+
+// Admin delete post (override ownership)
+async function adminDeletePost(postId) {
+  if (!confirm('Admin: permanently delete this post?')) return;
+  await deletePostInternal(postId); // reuse internal delete (no confirm)
+}
+
+// Admin delete comment
+async function adminDeleteComment(postId, commentId) {
+  if (!confirm('Admin: delete this comment?')) return;
+  await db.collection("posts").doc(postId).collection("comments").doc(commentId).delete();
+}
+
+// Load reported posts (posts with at least 1 report)
+async function loadReportedPosts() {
+  const container = document.getElementById('reportedPostsList');
+  container.innerHTML = 'Loading...';
+  const postsSnap = await db.collection("posts").orderBy("timestamp","desc").get();
+  container.innerHTML = '';
+  for (let postDoc of postsSnap.docs) {
+    const reportsSnap = await postDoc.ref.collection("reports").get();
+    if (!reportsSnap.empty) {
+      const postData = postDoc.data();
+      const div = document.createElement('div');
+      div.className = 'post';
+      div.style.cssText = 'padding:10px; font-size:13px;';
+      div.innerHTML = `
+        <strong>${escapeHtml(postData.nickname)}</strong>: ${escapeHtml(postData.content?.substring(0,100) || '')}
+        <button onclick="adminDeletePost('${postDoc.id}')" class="admin-btn" style="background:#e94560; color:#fff; padding:2px 8px; margin-left:8px;">🗑️</button>
+      `;
+      container.appendChild(div);
+    }
+  }
+  if (container.innerHTML === '') container.innerHTML = '<p style="color:#aaa;">No reported posts.</p>';
+}
+
+// Check admin panel on load
+checkAdminPanel();
