@@ -390,6 +390,7 @@ function renderCommentNode(postId, node, depth, container) {
   const div = document.createElement('div');
   div.className = 'comment-thread' + (depth>0?' indented':'');
   div.style.marginLeft = depth>0 ? '20px' : '0';
+  div.setAttribute('data-comment-id', `${postId}_${commentId}`);
   div.innerHTML = `
     <div class="comment-body">
       <strong>${escapeHtml(node.nickname||'Anon')}:</strong> <span class="comment-text">${linkifyText(filterBadWords(escapeHtml(node.text)))}</span>
@@ -1311,15 +1312,56 @@ document.addEventListener('click', (e) => {
 
 async function editComment(postId, commentId) {
   const ref = db.collection("posts").doc(postId).collection("comments").doc(commentId);
-  try {
-    const doc = await ref.get();
-    if (!doc.exists) return;
-    const current = doc.data().text || '';
-    const newText = prompt('Edit comment:', current);
-    if (newText === null || newText.trim() === '' || newText.trim() === current) return;
-    await ref.update({ text: newText.trim() });
-    showToast('Comment updated');
-  } catch(e) { console.error(e); showToast('Edit failed'); }
+  
+  // Find the comment element
+  const commentDiv = document.querySelector(`[data-comment-id="${postId}_${commentId}"]`);
+  if (!commentDiv) return;
+  
+  const textSpan = commentDiv.querySelector('.comment-text');
+  if (!textSpan) return;
+  
+  // Create edit area
+  const editArea = document.createElement('div');
+  editArea.className = 'comment-edit-area';
+  editArea.innerHTML = `
+    <textarea class="comment-edit-textarea">${escapeHtml(textSpan.textContent.trim())}</textarea>
+    <div class="edit-actions" style="display:flex; gap:6px; justify-content:flex-end; margin-top:4px;">
+      <button class="cancel-comment-edit-btn">Cancel</button>
+      <button class="save-comment-edit-btn">Save</button>
+    </div>
+  `;
+  
+  // Hide original text, show edit
+  textSpan.style.display = 'none';
+  textSpan.parentNode.insertBefore(editArea, textSpan.nextSibling);
+  
+  const textarea = editArea.querySelector('.comment-edit-textarea');
+  textarea.focus();
+  
+  // Save action
+  editArea.querySelector('.save-comment-edit-btn').onclick = async () => {
+    const newText = textarea.value.trim();
+    if (newText === '' || newText === textSpan.textContent.trim()) {
+      // Cancel editing
+      textSpan.style.display = '';
+      editArea.remove();
+      return;
+    }
+    try {
+      await ref.update({ text: newText });
+      showToast('Comment updated');
+      // onSnapshot will rebuild the comment, removing edit area automatically
+    } catch(e) {
+      console.error(e);
+      showToast('Edit failed');
+    }
+  };
+  
+  // Cancel action
+  editArea.querySelector('.cancel-comment-edit-btn').onclick = () => {
+    textSpan.style.display = '';
+    editArea.remove();
+  };
 }
 
 async function deleteComment(postId, commentId) {
