@@ -1,1 +1,121 @@
-/* styles */
+body {
+    font-family: 'Segoe UI', Arial, sans-serif;
+    background: #1a1a2e;
+    color: #e0e0e0;
+    margin: 0;
+    padding: 10px;
+}
+#hub {
+    max-width: 700px;
+    margin: 0 auto;
+}
+.post-box {
+    background: #16213e;
+    padding: 15px;
+    border-radius: 12px;
+    margin-bottom: 20px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+}
+.post-box input[type="text"],
+.post-box textarea {
+    width: 100%;
+    margin-bottom: 10px;
+    padding: 10px;
+    border: 1px solid #0f3460;
+    border-radius: 8px;
+    background: #1a1a2e;
+    color: #e0e0e0;
+    font-size: 14px;
+}
+.post-box textarea {
+    height: 60px;
+    resize: vertical;
+}
+.post-box input[type="file"] {
+    margin-bottom: 10px;
+    color: #e0e0e0;
+}
+.post-box button {
+    background: #e94560;
+    color: white;
+    padding: 10px 24px;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: bold;
+    transition: background 0.3s;
+}
+.post-box button:hover {
+    background: #c23152;
+}
+.post {
+    background: #16213e;
+    padding: 15px;
+    border-radius: 12px;
+    margin-bottom: 15px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+}
+.post-header strong {
+    color: #e94560;
+}
+.post-header small {
+    color: #a0a0b0;
+    margin-left: 10px;
+}
+.post-content {
+    margin: 10px 0;
+    word-wrap: break-word;
+}
+.post img {
+    max-width: 100%;
+    border-radius: 8px;
+    margin: 10px 0;
+}
+.reactions button {
+    margin: 5px 8px 5px 0;
+    border: none;
+    background: none;
+    color: #e0e0e0;
+    cursor: pointer;
+    font-size: 18px;
+    transition: transform 0.2s;
+}
+.reactions button:hover {
+    transform: scale(1.2);
+}
+.comments {
+    margin-top: 10px;
+    background: #0f3460;
+    padding: 10px;
+    border-radius: 8px;
+}
+.comments-list {
+    max-height: 150px;
+    overflow-y: auto;
+    margin-bottom: 8px;
+}
+.comment {
+    border-bottom: 1px solid #1a1a2e;
+    padding: 4px 0;
+    font-size: 14px;
+}
+.comment strong {
+    color: #e94560;
+}
+#hub input[type="text"] {
+    padding: 6px 10px;
+    border: 1px solid #0f3460;
+    border-radius: 6px;
+    background: #1a1a2e;
+    color: #e0e0e0;
+    width: calc(100% - 70px);
+}
+#hub button {
+    padding: 6px 12px;
+    margin-left: 5px;
+    background: #e94560;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+}
