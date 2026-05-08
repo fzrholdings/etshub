@@ -847,3 +847,9 @@ body {
 .calendar-day { background: #0a0a0a; border: 1px solid #2a2a2a; border-radius: 8px; padding: 10px; text-align: center; cursor: pointer; font-size: 13px; }
 .calendar-day.today { border-color: #fff; }
 .calendar-day.has-convoy { background: #111; font-weight: bold; }
+
+/* Convoy Chat */
+.convoy-chat { margin-top: 10px; border: 1px solid #2a2a2a; border-radius: 8px; padding: 10px; }
+.chat-messages { max-height: 200px; overflow-y: auto; background: #000; border-radius: 6px; padding: 8px; margin-bottom: 8px; font-size: 13px; }
+.chat-msg { margin-bottom: 4px; }
+.chat-msg strong { color: #fff; margin-right: 4px; }
