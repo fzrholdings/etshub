@@ -190,9 +190,20 @@ function runCooldownTimer(expireTime) {
 })();
 
 function loadPosts() {
+  let initialLoadDone = false;
+  
   db.collection("posts").orderBy("timestamp","desc").onSnapshot(snapshot => {
     const container = document.getElementById('postsContainer');
     container.innerHTML = '';
+    
+    // Play sound only for new posts (not initial load)
+    if (initialLoadDone) {
+      snapshot.docChanges().forEach(change => {
+        if (change.type === 'added' && !change.doc.metadata.hasPendingWrites) {
+          playNotificationSound();
+        }
+      });
+    }
     snapshot.forEach(doc => {
       const post = doc.data();
       const postId = doc.id;
@@ -729,6 +740,54 @@ function compressImage(file, maxWidth = 1200, maxHeight = 1200, quality = 0.8) {
   });
 }
 
+// ----- Notification Sound -----
+let audioCtx = null;
+let audioBuffer = null;
+
+async function initAudio() {
+  if (audioCtx) return;
+  try {
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    // Create a short pleasant "pop" sound programmatically
+    audioBuffer = await createPopSound(audioCtx);
+  } catch (e) {
+    console.warn('Audio init failed:', e);
+  }
+}
+
+async function createPopSound(ctx) {
+  const sampleRate = ctx.sampleRate;
+  const duration = 0.15; // 150ms
+  const length = Math.floor(sampleRate * duration);
+  const buffer = ctx.createBuffer(1, length, sampleRate);
+  const data = buffer.getChannelData(0);
+  
+  // Sine wave with fast decay for a subtle "pop" sound
+  for (let i = 0; i < length; i++) {
+    const t = i / sampleRate;
+    const freq = 800 + (200 * (1 - t / duration)); // descending tone
+    const amplitude = Math.max(0, 1 - (t / duration) * 1.5); // fast decay
+    data[i] = amplitude * Math.sin(2 * Math.PI * freq * t);
+  }
+  return buffer;
+}
+
+function playNotificationSound() {
+  if (!audioCtx || !audioBuffer) return;
+  try {
+    // Resume context if suspended (autoplay policy)
+    if (audioCtx.state === 'suspended') {
+      audioCtx.resume();
+    }
+    const source = audioCtx.createBufferSource();
+    source.buffer = audioBuffer;
+    source.connect(audioCtx.destination);
+    source.start(0);
+  } catch (e) { /* ignore */ }
+}
+
+// Initialize audio on first user click anywhere
+document.addEventListener('click', initAudio, { once: true });
 
 // Init
 loadPosts();
