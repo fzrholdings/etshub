@@ -16,35 +16,6 @@ auth.signInAnonymously().catch(console.error);
 
 const IMGBB_API_KEY = "2e6555f84f2cba4982c98e35ff987554";
 
-// NSFWJS Model Loading (Public CDN Model)
-let nsfwModel = null;
-async function getNsfwModel() {
-    if (nsfwModel) return nsfwModel;
-    try {
-        // 1. Load the NSFWJS library
-        await new Promise((resolve, reject) => {
-            const script = document.createElement('script');
-            script.src = 'https://cdn.jsdelivr.net/npm/nsfwjs@2.4.2/dist/nsfwjs.min.js';
-            script.onload = resolve;
-            script.onerror = reject;
-            document.head.appendChild(script);
-        });
-        
-        // 2. Load the model from a reliable public CDN URL
-        // Option A: Official demo model (works, small size)
-        nsfwModel = await nsfwjs.load('https://cdn.jsdelivr.net/npm/nsfwjs@2.4.2/example/public/base64/');
-        // Option B: If the above fails, try the Heroku mirror (comment out A, use this)
-        // nsfwModel = await nsfwjs.load('https://nsfw-model.herokuapp.com/model/');
-        
-        console.log('NSFWJS model loaded');
-    } catch (e) {
-        console.warn('NSFWJS loading failed:', e);
-    }
-    return nsfwModel;
-}
-// Start loading in background
-getNsfwModel();
-
 // ----- Bad Word Filter -----
 const badWords = [
   'fuck', 'shit', 'ass', 'bitch', 'bastard', 'dick', 'piss', 'pussy', 'motherfucker', 'cunt', 'asshole', 'jerk', 'sex', 'niggar',
@@ -666,6 +637,35 @@ async function deletePostInternal(postId) {
     await db.collection("posts").doc(postId).delete();
   } catch(e) { console.error("Auto delete failed:", e); }
 }
+
+// NSFWJS Model Loading (Public CDN Model)
+let nsfwModel = null;
+async function getNsfwModel() {
+    if (nsfwModel) return nsfwModel;
+    try {
+        // 1. Load the NSFWJS library
+        await new Promise((resolve, reject) => {
+            const script = document.createElement('script');
+            script.src = 'https://cdn.jsdelivr.net/npm/nsfwjs@2.4.2/dist/nsfwjs.min.js';
+            script.onload = resolve;
+            script.onerror = reject;
+            document.head.appendChild(script);
+        });
+        
+        // 2. Load the model from a reliable public CDN URL
+        // Option A: Official demo model (works, small size)
+        nsfwModel = await nsfwjs.load('https://cdn.jsdelivr.net/npm/nsfwjs@2.4.2/example/public/base64/');
+        // Option B: If the above fails, try the Heroku mirror (comment out A, use this)
+        // nsfwModel = await nsfwjs.load('https://nsfw-model.herokuapp.com/model/');
+        
+        console.log('NSFWJS model loaded');
+    } catch (e) {
+        console.warn('NSFWJS loading failed:', e);
+    }
+    return nsfwModel;
+}
+// Start loading in background
+getNsfwModel();
 
 // Init
 loadPosts();
