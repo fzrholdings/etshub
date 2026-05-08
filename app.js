@@ -1203,8 +1203,40 @@ function handleRecurring() {
 }
 // Call handleRecurring() after loadConvoys (inside onSnapshot after renderConvoyCards maybe)
 
+// ========== Admin Mode ==========
+const ADMIN_SESSION_KEY = 'etshub_admin_session';
+
+async function promptAdminPassword() {
+  const password = prompt('Enter admin password:');
+  if (!password) return;
+  const formData = new FormData();
+  formData.append('password', password);
+  try {
+    const res = await fetch('/api/admin', { method:'POST', body:formData });
+    const data = await res.json();
+    if (data.success) {
+      localStorage.setItem(ADMIN_SESSION_KEY, 'true');
+      showToast('🔓 Admin mode activated');
+      // Reload to show admin UI
+      location.reload();
+    } else {
+      alert('Wrong password!');
+    }
+  } catch(e) { alert('Error connecting to admin service'); }
+}
+
+function isAdmin() {
+  return localStorage.getItem(ADMIN_SESSION_KEY) === 'true';
+}
+
+function logoutAdmin() {
+  localStorage.removeItem(ADMIN_SESSION_KEY);
+  location.reload();
+}
+
 // Init
 loadPosts();
+
 // Developer only: access convoy tab via ?tab=convoys
 (function() {
   const params = new URLSearchParams(window.location.search);
