@@ -633,11 +633,10 @@ async function checkImageNSFW(file) {
   const formData = new FormData();
   formData.append('api_user', '1778458502');
   formData.append('api_secret', '598QXkS4TcXXbfKTfDVMKxRomCbTomvr');
-  formData.append('models', 'nudity'); // classic nudity model (free)
-  formData.append('image', file);
+  formData.append('models', 'nudity-2.0'); // නිවැරදි model name
+  formData.append('media', file); // ⚠️ field name "media" විය යුතුයි
 
   try {
-    console.log('Sightengine: Sending check...');
     const response = await fetch('https://api.sightengine.com/1.0/check.json', {
       method: 'POST',
       body: formData
@@ -645,17 +644,16 @@ async function checkImageNSFW(file) {
     const result = await response.json();
     console.log('Sightengine result:', result);
     
-    if (result.nudity) {
+    if (result.status === 'success' && result.nudity) {
       const { sexual_activity, sexual_display, erotica } = result.nudity;
-      console.log('Scores:', { sexual_activity, sexual_display, erotica });
-      if (sexual_activity > 0.6 || sexual_display > 0.6 || erotica > 0.6) {
+      if (sexual_activity > 0.3 || sexual_display > 0.3 || erotica > 0.3) {
         return true; // NSFW
       }
     }
-    return false;
+    return false; // Safe
   } catch (e) {
-    console.error('Sightengine API call failed:', e);
-    return false; // Fail open (allow post)
+    console.error('Sightengine error:', e);
+    return false; // Fail safe (allow post)
   }
 }
 
