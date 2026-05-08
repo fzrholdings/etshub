@@ -740,63 +740,45 @@ function compressImage(file, maxWidth = 1200, maxHeight = 1200, quality = 0.8) {
   });
 }
 
-// ----- Notification Sound (HTML Audio) -----
-let notificationAudio = null;
+// ----- Notification Sound (Inline Beep) -----
+let audioCtx = null;
+let audioUnlocked = false;
 
-function generateBeepWavBase64() {
-  const sampleRate = 8000;
-  const duration = 0.1; // 100ms
-  const numSamples = Math.floor(sampleRate * duration);
-  const buffer = new ArrayBuffer(44 + numSamples);
-  const view = new DataView(buffer);
-
-  function writeString(view, offset, str) {
-    for (let i = 0; i < str.length; i++) view.setUint8(offset + i, str.charCodeAt(i));
+function unlockAudio() {
+  if (audioUnlocked) return;
+  try {
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    // Resume context if suspended (autoplay policy)
+    if (audioCtx.state === 'suspended') {
+      audioCtx.resume();
+    }
+    audioUnlocked = true;
+    console.log('Audio unlocked');
+  } catch (e) {
+    console.warn('AudioContext not available:', e);
   }
-
-  // WAV Header
-  writeString(view, 0, 'RIFF');
-  view.setUint32(4, 36 + numSamples, true);
-  writeString(view, 8, 'WAVE');
-  writeString(view, 12, 'fmt ');
-  view.setUint32(16, 16, true);    // Subchunk size
-  view.setUint16(20, 1, true);     // Audio format PCM
-  view.setUint16(22, 1, true);     // Mono
-  view.setUint32(24, sampleRate, true);
-  view.setUint32(28, sampleRate * 1, true); // Byte rate
-  view.setUint16(32, 1, true);     // Block align
-  view.setUint16(34, 8, true);     // Bits per sample
-  writeString(view, 36, 'data');
-  view.setUint32(40, numSamples, true);
-
-  // Audio data (descending tone beep)
-  for (let i = 0; i < numSamples; i++) {
-    const t = i / sampleRate;
-    const amplitude = Math.max(0, 1 - t / duration) * 0.6;
-    const sample = Math.sin(2 * Math.PI * 800 * t) * amplitude * 127 + 128;
-    view.setUint8(44 + i, Math.round(sample));
-  }
-
-  const bytes = new Uint8Array(buffer);
-  const binary = Array.from(bytes, byte => String.fromCharCode(byte)).join('');
-  return 'data:audio/wav;base64,' + btoa(binary);
-}
-
-function initAudio() {
-  if (notificationAudio) return;
-  notificationAudio = new Audio(generateBeepWavBase64());
-  notificationAudio.volume = 0.5;
 }
 
 function playNotificationSound() {
-  if (!notificationAudio) return;
-  notificationAudio.currentTime = 0;
-  // Detect paused state and play
-  notificationAudio.play().catch(() => {});
+  if (!audioUnlocked || !audioCtx) return;
+  try {
+    const now = audioCtx.currentTime;
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(800, now);
+    osc.frequency.exponentialRampToValueAtTime(600, now + 0.1); // descending
+    gain.gain.setValueAtTime(0.3, now);
+    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.15);
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+    osc.start(now);
+    osc.stop(now + 0.15);
+  } catch (e) { /* ignore */ }
 }
 
-// Initialize audio when user interacts first time
-document.addEventListener('click', initAudio, { once: true });
+// Unlock audio on first user click anywhere in the document
+document.addEventListener('click', unlockAudio, { once: true });
 
 // Init
 loadPosts();
