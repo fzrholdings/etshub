@@ -1132,5 +1132,49 @@ function filterByDate(dateStr) {
   }
 }
 
+function toggleConvoyChat(id) {
+  const d = document.getElementById('chat-'+id);
+  d.style.display = d.style.display === 'none' ? 'block' : 'none';
+  if (d.style.display !== 'none') loadChatMessages(id);
+}
+
+function loadChatMessages(id) {
+  db.collection("convoys").doc(id).collection("messages").orderBy("timestamp","asc")
+    .onSnapshot(snap => {
+      const c = document.getElementById('chatMessages-'+id);
+      if (!c) return;
+      c.innerHTML = '';
+      snap.forEach(doc => {
+        const m = doc.data();
+        c.innerHTML += `<div class="chat-msg"><strong>${escapeHtml(m.nickname)}:</strong> ${escapeHtml(m.text)}</div>`;
+      });
+    });
+}
+
+async function sendChatMessage(id) {
+  const input = document.getElementById('chatInput-'+id);
+  const text = input.value.trim();
+  if (!text) return;
+  await db.collection("convoys").doc(id).collection("messages").add({
+    nickname: getAnonymousName(),
+    text,
+    timestamp: firebase.firestore.FieldValue.serverTimestamp()
+  });
+  input.value = '';
+}
+
+// Show toast for convoys starting in < 5 minutes
+setInterval(() => {
+  const now = Date.now();
+  allConvoysData.forEach(c => {
+    const start = c.datetime.toDate().getTime();
+    const diff = start - now;
+    if (diff > 0 && diff < 5 * 60 * 1000 && !c._toastShown) {
+      showToast(`⏰ ${c.title} starts in ${Math.ceil(diff/60000)} min!`);
+      c._toastShown = true; // prevent repeat in this session
+    }
+  });
+}, 30000); // check every 30 seconds
+
 // Init
 loadPosts();
