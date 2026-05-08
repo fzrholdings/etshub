@@ -413,7 +413,7 @@ function renderCommentNode(postId, node, depth, container) {
   }
 }
 
-function addComment(postId) {
+async function addComment(postId) {
   const input = document.getElementById('commentInput-'+postId);
   const text = input.value.trim();
     const urlsInComment = extractUrls(text);
@@ -434,7 +434,7 @@ function addComment(postId) {
   }).then(() => input.value = '');
 }
 
-function addReply(postId, parentCommentId) {
+async function addReply(postId, parentCommentId) {
   const input = document.getElementById(`replyInput-${postId}-${parentCommentId}`);
   const text = input.value.trim();
     const urlsInReply = extractUrls(text);
