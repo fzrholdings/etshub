@@ -47,7 +47,7 @@ async function createPost() {
   
   // Check if there's text or selected images
   if (!content && selectedFiles.length === 0) {
-    return alert('Text එකක් හෝ image එකක් දාන්න!');
+    return showToast('Text or image required');
   }
 
   let imageUrls = [];
@@ -60,7 +60,7 @@ async function createPost() {
         imageUrls.push(url);
       }
     } catch (e) {
-      alert('Image upload failed! Try again.');
+      showToast('Image upload fail');
       console.error(e);
       return;
     }
@@ -81,7 +81,7 @@ async function createPost() {
     renderPreviews(); // update previews (empty)
   } catch (e) {
     console.error('Post fail:', e);
-    alert('Post කිරීම අසාර්ථකයි.');
+    showToast('Posting failed');
   }
 }
 
@@ -102,6 +102,20 @@ function loadPosts() {
       const btnEmoji = userReactType ? emojiMap[userReactType] : (totalReactions>0?emojiMap[top]:'👍');
       const btnText = userReactType ? userReactType.charAt(0).toUpperCase()+userReactType.slice(1) : (totalReactions>0?top.charAt(0).toUpperCase()+top.slice(1):'Like');
       const countStr = totalReactions>0?' · '+totalReactions:'';
+
+              // --- Deep Link Highlight & Scroll ---
+        if (snapshot.size > 0) {
+            const hash = window.location.hash;
+            if (hash && hash.startsWith('#post-')) {
+                const targetId = hash.replace('#post-', '');
+                const targetPost = document.getElementById('post-' + targetId);
+                if (targetPost) {
+                    targetPost.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    targetPost.classList.add('highlight');
+                    setTimeout(() => targetPost.classList.remove('highlight'), 2500);
+                }
+            }
+        }
 
       // මෙතන duplicate නැති බව තහවුරු කරන්න
       const div = document.createElement('div');
@@ -355,7 +369,7 @@ function handleFileSelect(fileList) {
     // Check size limit and show errors
     const oversized = newFiles.filter(f => f.size > maxSize);
     if (oversized.length > 0) {
-        alert(`File(s) too large! Maximum 10MB each.\n${oversized.map(f=>f.name).join(', ')}`);
+        showToast(`File(s) too large! Maximum 10MB each.\n${oversized.map(f=>f.name).join(', ')}`);
         // Remove oversized
         const validFiles = newFiles.filter(f => f.size <= maxSize);
         // Clear the file input so user can reselect (we'll reconstruct DataTransfer)
@@ -373,7 +387,7 @@ function handleFileSelect(fileList) {
 function addFiles(files) {
     // Enforce total max 3 images
     if (selectedFiles.length + files.length > 3) {
-        alert('Maximum 3 images allowed!');
+        showToast('Maximum 3 images allowed!');
         return;
     }
     selectedFiles.push(...files);
@@ -445,7 +459,7 @@ function sharePost(postId, text) {
     if (navigator.share) {
         navigator.share(shareData).catch(() => {});
     } else {
-        navigator.clipboard.writeText(shareData.url).then(() => {
+        navigator.clipboard.writeText(postUrl).then(() => {
             showToast('📋 Post link copied!');
         }).catch(() => showToast('Copy failed'));
     }
@@ -506,14 +520,11 @@ async function editPost(postId) {
 async function deletePost(postId) {
     showConfirm('Delete this post? It will be permanently removed.', async () => {
         try {
-            // Delete comments
             const commentsRef = db.collection("posts").doc(postId).collection("comments");
             const commentSnap = await commentsRef.get();
             const batch = db.batch();
             commentSnap.forEach(doc => batch.delete(doc.ref));
             await batch.commit();
-            
-            // Delete post
             await db.collection("posts").doc(postId).delete();
         } catch(e) {
             console.error(e);
@@ -522,7 +533,7 @@ async function deletePost(postId) {
     });
 }
 
-// Custom Confirm Modal
+// ----- Custom Confirm Modal -----
 function showConfirm(message, onConfirm) {
     const modal = document.getElementById('confirmModal');
     document.getElementById('confirmMessage').textContent = message;
@@ -543,7 +554,7 @@ function showConfirm(message, onConfirm) {
     cancelBtn.addEventListener('click', handleCancel);
 }
 
-// Toast (existing, verify it's present)
+// ----- Custom Toast Message -----
 function showToast(msg) {
     const old = document.querySelector('.toast');
     if(old) old.remove();
