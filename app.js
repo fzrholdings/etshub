@@ -85,20 +85,54 @@ function loadPosts() {
           </div>
           ${post.content ? `<div class="post-content">${escapeHtml(post.content)}</div>` : ''}
           ${post.imageUrl ? `<img src="${escapeHtml(post.imageUrl)}" alt="post image">` : ''}
-          <div class="reactions">
-  <button onclick="react('${postId}', 'like')">
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 22V11M2 13v7a2 2 0 002 2h12l4-10h-5.2a2 2 0 01-2-2V6a4 4 0 00-4-4h-.6a2 2 0 00-1.9 1.4L7 9"/><path d="M7 9h9.2a2 2 0 011.8 1.2L22 18"/></svg>
-    <span>${post.reactions.like}</span>
-  </button>
-  <button onclick="react('${postId}', 'love')">
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
-    <span>${post.reactions.love}</span>
-  </button>
-  <button onclick="react('${postId}', 'horn')">
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a3 3 0 010 6M5 8h2l4-5v18l-4-5H5a2 2 0 01-2-2v-6a2 2 0 012-2z"/></svg>
-    <span>${post.reactions.horn}</span>
-  </button>
-</div>
+          // ---------- Reaction Wrapper ----------
+// User's own reaction check (localStorage)
+let userReactions = {};
+try { userReactions = JSON.parse(localStorage.getItem('userReactions') || '{}'); } catch(e) {}
+const userReactType = userReactions[postId] || null;
+
+// Total reactions count / top reaction
+const totalReactions = (post.reactions?.like || 0) + (post.reactions?.love || 0) + 
+                       (post.reactions?.haha || 0) + (post.reactions?.wow || 0) + 
+                       (post.reactions?.sad || 0) + (post.reactions?.angry || 0);
+const reactionTypes = ['like','love','haha','wow','sad','angry'];
+let topReaction = 'like';
+let topCount = 0;
+reactionTypes.forEach(type => {
+  if((post.reactions?.[type] || 0) > topCount) {
+    topCount = post.reactions?.[type] || 0;
+    topReaction = type;
+  }
+});
+
+// Emoji map
+const emojiMap = {
+  like: '👍',
+  love: '❤️',
+  haha: '😆',
+  wow: '😮',
+  sad: '😢',
+  angry: '😠'
+};
+
+// Default button text/icon
+const buttonEmoji = userReactType ? emojiMap[userReactType] : (totalReactions > 0 ? emojiMap[topReaction] : '👍');
+const buttonText = userReactType ? (userReactType.charAt(0).toUpperCase() + userReactType.slice(1)) : 
+                   (totalReactions > 0 ? (topReaction.charAt(0).toUpperCase() + topReaction.slice(1)) : 'Like');
+
+const reactionHtml = `
+  <div class="reaction-wrapper">
+    <button class="like-btn">${buttonEmoji} <span>${buttonText}</span>${totalReactions > 0 ? ' · '+totalReactions : ''}</button>
+    <div class="reaction-picker">
+      <button class="reaction-option" onclick="event.stopPropagation(); react('${postId}', 'like')" title="Like">👍</button>
+      <button class="reaction-option" onclick="event.stopPropagation(); react('${postId}', 'love')" title="Love">❤️</button>
+      <button class="reaction-option" onclick="event.stopPropagation(); react('${postId}', 'haha')" title="Haha">😆</button>
+      <button class="reaction-option" onclick="event.stopPropagation(); react('${postId}', 'wow')" title="Wow">😮</button>
+      <button class="reaction-option" onclick="event.stopPropagation(); react('${postId}', 'sad')" title="Sad">😢</button>
+      <button class="reaction-option" onclick="event.stopPropagation(); react('${postId}', 'angry')" title="Angry">😠</button>
+    </div>
+  </div>
+`;
           <button onclick="toggleCommentBox('${postId}')">💬 Comment</button>
           <div class="comments" id="comments-${postId}" style="display:none;">
             <div class="comments-list" id="commentsList-${postId}"></div>
@@ -112,17 +146,29 @@ function loadPosts() {
     });
 }
 
-// Reaction function
-function react(postId, type) {
+// Reaction function (update Firestore + localStorage)
+async function react(postId, type) {
+  // Update Firestore
   const ref = db.collection("posts").doc(postId);
-  db.runTransaction(async (transaction) => {
-    const doc = await transaction.get(ref);
-    if (!doc.exists) return;
-    const data = doc.data();
-    const reactions = { ...data.reactions };
-    reactions[type] = (reactions[type] || 0) + 1;
-    transaction.update(ref, { reactions });
-  }).catch(console.error);
+  try {
+    await db.runTransaction(async (transaction) => {
+      const doc = await transaction.get(ref);
+      if (!doc.exists) return;
+      const data = doc.data();
+      const reactions = { like:0, love:0, haha:0, wow:0, sad:0, angry:0, ...data.reactions };
+      reactions[type] = (reactions[type] || 0) + 1;
+      transaction.update(ref, { reactions });
+    });
+    
+    // Save user's reaction to localStorage
+    let userReactions = JSON.parse(localStorage.getItem('userReactions') || '{}');
+    userReactions[postId] = type;
+    localStorage.setItem('userReactions', JSON.stringify(userReactions));
+    
+    // No need to refresh UI manually, onSnapshot will trigger loadPosts and re-render
+  } catch (error) {
+    console.error("Reaction failed:", error);
+  }
 }
 
 // Load comments
