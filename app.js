@@ -1084,5 +1084,33 @@ function filterConvoys() {
   renderConvoyCards(filtered);
 }
 
+let showCalendar = false;
+function toggleConvoyView() {
+  showCalendar = !showCalendar;
+  document.getElementById('calendarToggle').textContent = showCalendar ? '📋 List View' : '📅 Calendar View';
+  document.getElementById('convoysList').style.display = showCalendar ? 'none' : 'block';
+  document.getElementById('convoysCalendar').style.display = showCalendar ? 'grid' : 'none';
+  if (showCalendar) renderCalendar();
+}
+function renderCalendar() {
+  const calDiv = document.getElementById('convoysCalendar');
+  calDiv.className = 'convoy-calendar'; const now = new Date();
+  const year = now.getFullYear(), month = now.getMonth();
+  const firstDay = new Date(year, month, 1).getDay();
+  const daysInMonth = new Date(year, month+1, 0).getDate();
+  const daysWithConvoys = new Set(allConvoysData.map(c => c.datetime.toDate().toDateString()));
+  let html = '';
+  for (let i=0; i<firstDay; i++) html += '<div></div>';
+  for (let d=1; d<=daysInMonth; d++) {
+    const date = new Date(year, month, d);
+    const dateStr = date.toDateString();
+    const hasConvoy = daysWithConvoys.has(dateStr);
+    const today = dateStr === new Date().toDateString() ? ' today' : '';
+    html += `<div class="calendar-day${today}${hasConvoy?' has-convoy':''}" onclick="filterByDate('${date.toISOString().slice(0,10)}')">${d}</div>`;
+  }
+  calDiv.innerHTML = html;
+}
+function filterByDate(dateStr) { /* filter allConvoysData by date and switch to list */ }
+
 // Init
 loadPosts();
