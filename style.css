@@ -840,3 +840,8 @@ body {
     font-size: 13px;
     color: #aaa;
 }
+
+.convoy-calendar { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
+.calendar-day { background: #0a0a0a; border: 1px solid #2a2a2a; border-radius: 8px; padding: 10px; text-align: center; cursor: pointer; font-size: 13px; }
+.calendar-day.today { border-color: #fff; }
+.calendar-day.has-convoy { background: #111; font-weight: bold; }
