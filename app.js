@@ -209,6 +209,105 @@ function runCooldownTimer(expireTime) {
   if (Date.now() < expire) runCooldownTimer(expire);
 })();
 
+// ========== Convoy Planner ==========
+
+function switchTab(tabName) {
+  // Toggle active class on buttons
+  document.querySelectorAll('.tab-btn').forEach(b => {
+    b.classList.remove('active');
+    if (b.textContent.includes(tabName === 'wall' ? 'Wall' : 'Convoys')) {
+      b.classList.add('active');
+    }
+  });
+  // Show/hide containers
+  document.getElementById('wallContainer').style.display = tabName === 'wall' ? 'block' : 'none';
+  document.getElementById('convoysContainer').style.display = tabName === 'convoys' ? 'block' : 'none';
+  if (tabName === 'convoys') loadConvoys();
+}
+
+async function createConvoy() {
+  const title = document.getElementById('convoyTitle').value.trim();
+  const dateTimeStr = document.getElementById('convoyDateTime').value;
+  const desc = document.getElementById('convoyDesc').value.trim();
+  if (!title || !dateTimeStr) return showToast('Title and date are required!');
+  
+  const datetime = new Date(dateTimeStr);
+  if (isNaN(datetime.getTime())) return showToast('Invalid date/time');
+
+  try {
+    await db.collection("convoys").add({
+      title,
+      datetime: firebase.firestore.Timestamp.fromDate(datetime),
+      description: desc,
+      creatorName: getAnonymousName(),
+      participants: {}
+    });
+    document.getElementById('convoyTitle').value = '';
+    document.getElementById('convoyDateTime').value = '';
+    document.getElementById('convoyDesc').value = '';
+    showToast('Convoy scheduled!');
+    loadConvoys();
+  } catch (e) {
+    console.error(e);
+    showToast('Failed to create convoy');
+  }
+}
+
+function loadConvoys() {
+  db.collection("convoys").orderBy("datetime", "asc").onSnapshot(snapshot => {
+    const container = document.getElementById('convoysList');
+    container.innerHTML = '';
+    if (snapshot.empty) {
+      container.innerHTML = '<p style="color:#aaa; text-align:center;">No convoys planned yet.</p>';
+      return;
+    }
+    snapshot.forEach(doc => {
+      const convoy = doc.data();
+      const convoyId = doc.id;
+      const anonId = getAnonymousId();
+      const participants = convoy.participants || {};
+      const isJoined = !!participants[anonId];
+      const count = Object.keys(participants).length;
+
+      const card = document.createElement('div');
+      card.className = 'convoy-card';
+      card.innerHTML = `
+        <div class="convoy-title">${escapeHtml(convoy.title)}</div>
+        <div class="convoy-meta">
+          🕒 ${convoy.datetime.toDate().toLocaleString()} • by ${escapeHtml(convoy.creatorName)}
+        </div>
+        ${convoy.description ? `<div class="convoy-desc">${escapeHtml(convoy.description)}</div>` : ''}
+        <button class="convoy-join-btn ${isJoined ? 'joined' : ''}" onclick="toggleJoinConvoy('${convoyId}')">${isJoined ? '✔ Joined' : 'Join Convoy'}</button>
+        <div class="convoy-participants">${count} participant${count !== 1 ? 's' : ''}</div>
+      `;
+      container.appendChild(card);
+    });
+  });
+}
+
+async function toggleJoinConvoy(convoyId) {
+  const ref = db.collection("convoys").doc(convoyId);
+  const anonId = getAnonymousId();
+  
+  try {
+    await db.runTransaction(async (transaction) => {
+      const doc = await transaction.get(ref);
+      if (!doc.exists) return;
+      const data = doc.data();
+      const participants = { ...data.participants };
+      if (participants[anonId]) {
+        delete participants[anonId];
+      } else {
+        participants[anonId] = true;
+      }
+      transaction.update(ref, { participants });
+    });
+  } catch (e) {
+    console.error(e);
+    showToast('Failed to update participation');
+  }
+}
+
 function loadPosts() {
   let initialLoadDone = false;
 
