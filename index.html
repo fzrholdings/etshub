@@ -9,79 +9,71 @@
 <body>
     <div id="hub">
         <!-- Tab Navigation -->
-<div class="tab-bar">
-    <button class="tab-btn active" onclick="switchTab('wall')">📝 Wall</button>
-    <button class="tab-btn" onclick="switchTab('convoys')">🚚 Convoys</button>
-</div>
+        <div class="tab-bar">
+            <button class="tab-btn active" onclick="switchTab('wall')">📝 Wall</button>
+            <button class="tab-btn" onclick="switchTab('convoys')">🚚 Convoys</button>
+        </div>
 
-<!-- Wall Container (existing) -->
-<div id="wallContainer">
-    <!-- Search Bar, Post Box, PostsContainer - move existing code here -->
-    <!-- Actually, we can just wrap existing content with divs. Easier: keep as is, we'll show/hide -->
-</div>
+        <!-- Wall Content -->
+        <div id="wallContainer">
+            <!-- Search Bar -->
+            <div class="search-container">
+                <input type="text" id="searchInput" placeholder="🔍 Search posts..." oninput="filterPosts()">
+            </div>
 
-<!-- Convoys Container (hidden by default) -->
-<div id="convoysContainer" style="display:none;">
-    <div class="card convoy-create">
-        <h3>Create Convoy</h3>
-        <input type="text" id="convoyTitle" placeholder="Title (e.g. Colombo-Kandy Run)">
-        <input type="datetime-local" id="convoyDateTime">
-        <textarea id="convoyDesc" placeholder="Description, route, rules..."></textarea>
-        <button onclick="createConvoy()">Schedule Convoy</button>
-    </div>
-    <div id="convoysList"></div>
-</div>
-        <!-- Post Box -->
-        <!-- Search Bar -->
-<div class="search-container">
-    <input type="text" id="searchInput" placeholder="🔍 Search posts..." oninput="filterPosts()">
-</div>
-        <div class="post-box">
-    <textarea id="postContent" placeholder="මොනවද කියන්න ඕනේ? (Screenshot link, සින්දු request, chat...)"></textarea>
-    
-    <!-- Attachment Button & Previews -->
-    <div class="attach-section">
-        <button type="button" class="attach-btn" onclick="document.getElementById('imageInput').click()">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
-            Attach
-        </button>
-        <span class="attach-limit">Max 3 images, each &lt;10MB</span>
-        <input type="file" id="imageInput" accept="image/*" multiple style="display:none;" onchange="handleFileSelect(this.files)">
-    </div>
-    
-    <!-- Preview Container -->
-    <div class="preview-container" id="previewContainer"></div>
-    
-    <button id="postButton" onclick="createPost()">Post කරන්න</button>
-</div>
-        <!-- Posts Feed -->
-        <div id="postsContainer"></div>
+            <!-- Post Box -->
+            <div class="post-box">
+                <textarea id="postContent" placeholder="මොනවද කියන්න ඕනේ? (Screenshot link, සින්දු request, chat...)"></textarea>
+                <div class="attach-section">
+                    <button type="button" class="attach-btn" onclick="document.getElementById('imageInput').click()">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
+                        Attach
+                    </button>
+                    <span class="attach-limit">Max 3 images, each &lt;10MB</span>
+                    <input type="file" id="imageInput" accept="image/*" multiple style="display:none;" onchange="handleFileSelect(this.files)">
+                </div>
+                <div class="preview-container" id="previewContainer"></div>
+                <button id="postButton" onclick="createPost()">Post කරන්න</button>
+            </div>
+
+            <!-- Posts Feed -->
+            <div id="postsContainer"></div>
+        </div>
+
+        <!-- Convoys Content -->
+        <div id="convoysContainer" style="display:none;">
+            <div class="card convoy-create">
+                <h3>Create Convoy</h3>
+                <input type="text" id="convoyTitle" placeholder="Title (e.g. Colombo-Kandy Run)">
+                <input type="datetime-local" id="convoyDateTime">
+                <textarea id="convoyDesc" placeholder="Description, route, rules..."></textarea>
+                <button onclick="createConvoy()">Schedule Convoy</button>
+            </div>
+            <div id="convoysList"></div>
+        </div>
     </div>
 
-    <!-- Firebase Compat SDKs (non-module, simple) -->
+    <!-- Modals -->
+    <div id="confirmModal" class="modal-overlay" style="display:none;">
+        <div class="modal-box">
+            <p id="confirmMessage"></p>
+            <div class="modal-actions">
+                <button class="modal-btn cancel-btn" id="confirmCancel">Cancel</button>
+                <button class="modal-btn confirm-btn" id="confirmOk">Delete</button>
+            </div>
+        </div>
+    </div>
+    <div id="lightbox" class="lightbox-overlay" style="display:none;">
+        <span class="lightbox-close" onclick="closeLightbox()">&times;</span>
+        <button class="lightbox-prev" onclick="changeLightboxImage(-1)">&#10094;</button>
+        <button class="lightbox-next" onclick="changeLightboxImage(1)">&#10095;</button>
+        <div class="lightbox-img-container"><img id="lightboxImg" src="" alt="Preview"></div>
+        <div class="lightbox-counter" id="lightboxCounter"></div>
+    </div>
+
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
     <script src="app.js"></script>
-    <!-- Custom Confirm Modal -->
-<div id="confirmModal" class="modal-overlay" style="display:none;">
-    <div class="modal-box">
-        <p id="confirmMessage"></p>
-        <div class="modal-actions">
-            <button class="modal-btn cancel-btn" id="confirmCancel">Cancel</button>
-            <button class="modal-btn confirm-btn" id="confirmOk">Delete</button>
-        </div>
-    </div>
-</div>
-    <!-- Image Lightbox -->
-<div id="lightbox" class="lightbox-overlay" style="display:none;">
-    <span class="lightbox-close" onclick="closeLightbox()">&times;</span>
-    <button class="lightbox-prev" onclick="changeLightboxImage(-1)">&#10094;</button>
-    <button class="lightbox-next" onclick="changeLightboxImage(1)">&#10095;</button>
-    <div class="lightbox-img-container">
-        <img id="lightboxImg" src="" alt="Preview">
-    </div>
-    <div class="lightbox-counter" id="lightboxCounter"></div>
-</div>
 </body>
 </html>
