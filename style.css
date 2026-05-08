@@ -924,3 +924,14 @@ body {
 .cm-like-btn.reacted:hover {
   background: #1a3a5c;
 }
+
+.reaction-option small {
+  font-size: 10px;
+  color: #aaa;
+  margin-left: 2px;
+}
+.cm-reaction-picker .reaction-option small {
+  font-size: 9px;
+  color: #aaa;
+  margin-left: 1px;
+}
