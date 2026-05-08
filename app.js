@@ -139,7 +139,7 @@ function addComment(postId) {
   const input = document.getElementById('commentInput-' + postId);
   const text = input.value.trim();
   if (!text) return;
-  const nickname = document.getElementById('nickname')?.value || 'Anonymous';
+  const nickname = getAnonymousName();
   db.collection("posts").doc(postId).collection("comments").add({
     nickname,
     text,
