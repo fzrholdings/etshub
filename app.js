@@ -105,46 +105,51 @@ function loadPosts() {
 
       const div = document.createElement('div');
       div.className = 'post';
-      div.innerHTML = `
-        <div class="post-header">
+      const div = document.createElement('div');
+div.className = 'post';
+div.setAttribute('data-post-id', postId);
+div.innerHTML = `
+  <div class="post-header">
     <div class="post-header-info">
-        <strong>${escapeHtml(post.nickname)}</strong>
-        <small>${post.timestamp?.toDate().toLocaleString()||'Just now'}</small>
+      <strong>${escapeHtml(post.nickname)}</strong>
+      <small>${post.timestamp?.toDate().toLocaleString()||'Just now'}</small>
     </div>
     <div class="post-actions">
-        <button onclick="togglePostMenu('${postId}')" class="menu-btn">⋮</button>
-        <div class="post-menu" id="menu-${postId}" style="display:none;">
-            <button onclick="sharePost('${escapeHtml(post.content || '')}')">Share</button>
-            ${post.nickname === getAnonymousName() ? `
-                <button onclick="editPost('${postId}')">Edit</button>
-                <button onclick="deletePost('${postId}')">Delete</button>
-            ` : ''}
-        </div>
+      <button onclick="togglePostMenu('${postId}')" class="menu-btn">⋮</button>
+      <div class="post-menu" id="menu-${postId}" style="display:none;">
+        <button onclick="sharePost('${escapeHtml(post.content || '')}')">Share</button>
+        ${post.nickname === getAnonymousName() ? `
+          <button onclick="editPost('${postId}')">Edit</button>
+          <button onclick="deletePost('${postId}')">Delete</button>
+        ` : ''}
+      </div>
     </div>
-</div>
-        ${post.content?`<div class="post-content">${escapeHtml(post.content)}</div>`:''}
-        ${(post.imageUrls && post.imageUrls.length > 0) ? post.imageUrls.map(url => `<img src="${escapeHtml(url)}">`).join('') : ''}
-${(!post.imageUrls || post.imageUrls.length === 0) && post.imageUrl ? `<img src="${escapeHtml(post.imageUrl)}">` : ''}
-        <div class="reaction-wrapper">
-          <button class="like-btn">${btnEmoji} <span>${btnText}</span>${countStr}</button>
-          <div class="reaction-picker">
-            ${reactionTypes.map(t=>`<button class="reaction-option" onclick="event.stopPropagation(); reactPost('${postId}','${t}')">${emojiMap[t]}</button>`).join('')}
-          </div>
-        </div>
-        <button class="comment-toggle-btn" onclick="toggleCommentBox('${postId}')">💬 Comment</button>
-        <div class="comments" id="comments-${postId}" style="display:none;">
-          <div class="comments-list" id="commentsList-${postId}"></div>
-          <div class="top-reply-box">
-            <input type="text" id="commentInput-${postId}" placeholder="Comment එකක්...">
-            <button class="cm-send-btn" onclick="addComment('${postId}')">Send</button>
-          </div>
-        </div>
-      `;
-      container.appendChild(div);
-      loadComments(postId);
-    });
-  });
-}
+  </div>
+  <div class="post-content">${post.content ? escapeHtml(post.content) : ''}</div>
+  <div class="edit-area" style="display:none;">
+    <textarea></textarea>
+    <div class="edit-actions">
+      <button class="cancel-edit-btn">Cancel</button>
+      <button class="save-edit-btn">Save</button>
+    </div>
+  </div>
+  ${(post.imageUrls && post.imageUrls.length > 0) ? post.imageUrls.map(url => `<img src="${escapeHtml(url)}">`).join('') : ''}
+  ${(!post.imageUrls || post.imageUrls.length === 0) && post.imageUrl ? `<img src="${escapeHtml(post.imageUrl)}">` : ''}
+  <div class="reaction-wrapper">
+    <button class="like-btn">${btnEmoji} <span>${btnText}</span>${countStr}</button>
+    <div class="reaction-picker">
+      ${reactionTypes.map(t=>`<button class="reaction-option" onclick="event.stopPropagation(); reactPost('${postId}','${t}')">${emojiMap[t]}</button>`).join('')}
+    </div>
+  </div>
+  <button class="comment-toggle-btn" onclick="toggleCommentBox('${postId}')">💬 Comment</button>
+  <div class="comments" id="comments-${postId}" style="display:none;">
+    <div class="comments-list" id="commentsList-${postId}"></div>
+    <div class="top-reply-box">
+      <input type="text" id="commentInput-${postId}" placeholder="Comment එකක්...">
+      <button class="cm-send-btn" onclick="addComment('${postId}')">Send</button>
+    </div>
+  </div>
+`;
 
 // ---- Toggle Reaction for Posts ----
 async function reactPost(postId, type) {
@@ -399,45 +404,105 @@ document.addEventListener('click', (e) => {
     }
 });
 
+function showToast(msg) {
+  // Remove existing toast if any
+  const old = document.querySelector('.toast');
+  if(old) old.remove();
+  const toast = document.createElement('div');
+  toast.className = 'toast';
+  toast.textContent = msg;
+  document.body.appendChild(toast);
+  requestAnimationFrame(() => toast.classList.add('show'));
+  setTimeout(() => {
+    toast.classList.remove('show');
+    setTimeout(() => toast.remove(), 300);
+  }, 2000);
+}
+
 function sharePost(text) {
-    const shareData = {
-        title: 'ETS Ceylon FM Hub',
-        text: text ? text : 'Check out ETS Ceylon FM Hub!',
-        url: window.location.href
-    };
-    if (navigator.share) {
-        navigator.share(shareData).catch(() => {});
-    } else {
-        navigator.clipboard.writeText(shareData.text + ' ' + shareData.url).then(() => {
-            alert('Link copied to clipboard!');
-        }).catch(() => alert('Sharing not supported'));
-    }
+  const shareData = {
+    title: 'ETS Ceylon FM Hub',
+    text: text ? text : 'Check out ETS Ceylon FM Hub!',
+    url: window.location.href
+  };
+  if (navigator.share) {
+    navigator.share(shareData).catch(() => showToast('Share cancelled'));
+  } else {
+    navigator.clipboard.writeText(shareData.text + ' ' + shareData.url)
+      .then(() => showToast('📋 Link copied to clipboard!'))
+      .catch(() => showToast('❌ Copy failed'));
+  }
 }
 
 async function editPost(postId) {
-    const docRef = db.collection("posts").doc(postId);
-    try {
-        const doc = await docRef.get();
-        if (!doc.exists) return alert('Post not found');
-        const currentContent = doc.data().content || '';
-        const newContent = prompt('Edit post content:', currentContent);
-        if (newContent === null || newContent.trim() === '') return;
-        await docRef.update({ content: newContent.trim() });
-    } catch(e) {
+  const docRef = db.collection("posts").doc(postId);
+  try {
+    const doc = await docRef.get();
+    if (!doc.exists) return;
+    const post = doc.data();
+    const currentContent = post.content || '';
+    
+    // Find post container and show edit area
+    const postDiv = document.querySelector(`[data-post-id="${postId}"]`);
+    if (!postDiv) return;
+    const contentDiv = postDiv.querySelector('.post-content');
+    const editArea = postDiv.querySelector('.edit-area');
+    const editTextarea = editArea.querySelector('textarea');
+    
+    // Hide static content, show edit
+    contentDiv.style.display = 'none';
+    editArea.style.display = 'flex';
+    editTextarea.value = currentContent;
+    editTextarea.focus();
+    
+    // Save action
+    editArea.querySelector('.save-edit-btn').onclick = async () => {
+      const newContent = editTextarea.value.trim();
+      if (newContent === '' || newContent === currentContent) {
+        // Cancel editing
+        contentDiv.style.display = 'block';
+        editArea.style.display = 'none';
+        return;
+      }
+      try {
+        await docRef.update({ content: newContent });
+        // onSnapshot will update UI automatically
+      } catch(e) {
         console.error(e);
-        alert('Edit failed');
-    }
+        showToast('Edit failed');
+      }
+    };
+    
+    // Cancel action
+    editArea.querySelector('.cancel-edit-btn').onclick = () => {
+      contentDiv.style.display = 'block';
+      editArea.style.display = 'none';
+    };
+    
+  } catch(e) {
+    console.error(e);
+    showToast('Edit not available');
+  }
 }
 
 async function deletePost(postId) {
-    if (!confirm('Delete this post? This cannot be undone.')) return;
-    try {
-        await db.collection("posts").doc(postId).delete();
-        // UI will automatically remove via onSnapshot
-    } catch(e) {
-        console.error(e);
-        alert('Delete failed');
-    }
+  if (!confirm('Delete this post? This cannot be undone.')) return;
+  
+  try {
+    // First delete all comments in subcollection
+    const commentsRef = db.collection("posts").doc(postId).collection("comments");
+    const commentSnap = await commentsRef.get();
+    const batch = db.batch();
+    commentSnap.forEach(doc => batch.delete(doc.ref));
+    await batch.commit();
+    
+    // Then delete the post
+    await db.collection("posts").doc(postId).delete();
+    // onSnapshot will remove the post from UI automatically
+  } catch(e) {
+    console.error(e);
+    showToast('Delete failed. Try again.');
+  }
 }
 
 loadPosts();
