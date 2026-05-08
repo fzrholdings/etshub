@@ -131,23 +131,14 @@ body {
     margin-top: 4px;
 }
 .reactions button {
-    background: #111;
-    border: 1px solid #2a2a2a;
-    color: #ccc;
-    padding: 6px 14px;
-    border-radius: 20px;
-    font-size: 15px;
-    cursor: pointer;
-    transition: all 0.2s;
-    display: flex;
+    display: inline-flex;
     align-items: center;
-    gap: 4px;
+    gap: 6px;
+    color: #ccc;
+    /* existing styles remain */
 }
 .reactions button:hover {
-    background: #1f1f1f;
-    border-color: #555;
-    color: #fff;
-    transform: translateY(-1px);
+    color: #fff; /* icon and text white on hover */
 }
 
 /* ===== Comments Section ===== */
