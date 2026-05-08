@@ -153,5 +153,33 @@ function toggleCommentBox(postId) {
   div.style.display = div.style.display === 'none' ? 'block' : 'none';
 }
 
+// ---------- Random Anonymous Name Generator ----------
+const adjectives = [
+  "Silent", "Wild", "Phantom", "Turbo", "Mystic", "Rogue", "Blazing", "Iron", "Dark", "Cosmic",
+  "Neon", "Storm", "Shadow", "Atomic", "Frozen", "Crimson", "Rapid", "Vortex", "Zen", "Lunar"
+];
+
+const nouns = [
+  "Wolf", "Eagle", "Panda", "Tiger", "Falcon", "Knight", "Rider", "Ghost", "Drift", "Beast",
+  "Hawk", "Viper", "Legend", "Raven", "Comet", "Phoenix", "Joker", "Warden", "Pilot", "Nomad"
+];
+
+function generateRandomName() {
+  const adj = adjectives[Math.floor(Math.random() * adjectives.length)];
+  const noun = nouns[Math.floor(Math.random() * nouns.length)];
+  const num = Math.floor(Math.random() * 1000);
+  return `${adj}${noun}${num}`;
+}
+
+function getAnonymousName() {
+  let name = localStorage.getItem('anonName');
+  if (!name) {
+    name = generateRandomName();
+    localStorage.setItem('anonName', name);
+  }
+  return name;
+}
+// ----------------------------------------------------
+
 // Start
 loadPosts();
