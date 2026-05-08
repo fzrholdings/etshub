@@ -116,7 +116,7 @@ function loadPosts() {
           <div class="post-actions">
             <button onclick="togglePostMenu('${postId}')" class="menu-btn">⋮</button>
             <div class="post-menu" id="menu-${postId}" style="display:none;">
-              <button onclick="sharePost('${escapeHtml(post.content || '')}')">Share</button>
+              <button onclick="sharePost('${postId}', '${escapeHtml(post.content || '')}')">Share</button>
               ${post.nickname === getAnonymousName() ? `
                 <button onclick="editPost('${postId}')">Edit</button>
                 <button onclick="deletePost('${postId}')">Delete</button>
@@ -151,6 +151,18 @@ function loadPosts() {
       `;
       container.appendChild(div);
       loadComments(postId);
+      // ... after forEach loop ends, and after container finished:
+// Scroll to deep link if any
+const hash = window.location.hash;
+if (hash && hash.startsWith('#post-')) {
+    const targetId = hash.replace('#post-', '');
+    const targetPost = document.getElementById('post-' + targetId);
+    if (targetPost) {
+        targetPost.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        targetPost.classList.add('highlight');
+        setTimeout(() => targetPost.classList.remove('highlight'), 2500);
+    }
+}
     });
   });
 }
@@ -423,19 +435,20 @@ function showToast(msg) {
   }, 2000);
 }
 
-function sharePost(text) {
-  const shareData = {
-    title: 'ETS Ceylon FM Hub',
-    text: text ? text : 'Check out ETS Ceylon FM Hub!',
-    url: window.location.href
-  };
-  if (navigator.share) {
-    navigator.share(shareData).catch(() => showToast('Share cancelled'));
-  } else {
-    navigator.clipboard.writeText(shareData.text + ' ' + shareData.url)
-      .then(() => showToast('📋 Link copied to clipboard!'))
-      .catch(() => showToast('❌ Copy failed'));
-  }
+function sharePost(postId, text) {
+    const postUrl = window.location.href.split('#')[0] + '#post-' + postId;
+    const shareData = {
+        title: 'ETS Ceylon FM Hub',
+        text: text ? text : 'Check this post!',
+        url: postUrl
+    };
+    if (navigator.share) {
+        navigator.share(shareData).catch(() => {});
+    } else {
+        navigator.clipboard.writeText(shareData.url).then(() => {
+            showToast('📋 Post link copied!');
+        }).catch(() => showToast('Copy failed'));
+    }
 }
 
 async function editPost(postId) {
@@ -466,6 +479,7 @@ async function editPost(postId) {
         // Cancel editing
         contentDiv.style.display = 'block';
         editArea.style.display = 'none';
+        showToast('Post updated')
         return;
       }
       try {
@@ -490,23 +504,58 @@ async function editPost(postId) {
 }
 
 async function deletePost(postId) {
-  if (!confirm('Delete this post? This cannot be undone.')) return;
-  
-  try {
-    // First delete all comments in subcollection
-    const commentsRef = db.collection("posts").doc(postId).collection("comments");
-    const commentSnap = await commentsRef.get();
-    const batch = db.batch();
-    commentSnap.forEach(doc => batch.delete(doc.ref));
-    await batch.commit();
+    showConfirm('Delete this post? It will be permanently removed.', async () => {
+        try {
+            // Delete comments
+            const commentsRef = db.collection("posts").doc(postId).collection("comments");
+            const commentSnap = await commentsRef.get();
+            const batch = db.batch();
+            commentSnap.forEach(doc => batch.delete(doc.ref));
+            await batch.commit();
+            
+            // Delete post
+            await db.collection("posts").doc(postId).delete();
+        } catch(e) {
+            console.error(e);
+            showToast('❌ Delete failed');
+        }
+    });
+}
+
+// Custom Confirm Modal
+function showConfirm(message, onConfirm) {
+    const modal = document.getElementById('confirmModal');
+    document.getElementById('confirmMessage').textContent = message;
+    modal.style.display = 'flex';
     
-    // Then delete the post
-    await db.collection("posts").doc(postId).delete();
-    // onSnapshot will remove the post from UI automatically
-  } catch(e) {
-    console.error(e);
-    showToast('Delete failed. Try again.');
-  }
+    const okBtn = document.getElementById('confirmOk');
+    const cancelBtn = document.getElementById('confirmCancel');
+    
+    const closeModal = () => { modal.style.display = 'none'; };
+    const cleanup = () => {
+        okBtn.removeEventListener('click', handleOk);
+        cancelBtn.removeEventListener('click', handleCancel);
+    };
+    const handleOk = () => { cleanup(); closeModal(); onConfirm(); };
+    const handleCancel = () => { cleanup(); closeModal(); };
+    
+    okBtn.addEventListener('click', handleOk);
+    cancelBtn.addEventListener('click', handleCancel);
+}
+
+// Toast (existing, verify it's present)
+function showToast(msg) {
+    const old = document.querySelector('.toast');
+    if(old) old.remove();
+    const toast = document.createElement('div');
+    toast.className = 'toast';
+    toast.textContent = msg;
+    document.body.appendChild(toast);
+    requestAnimationFrame(() => toast.classList.add('show'));
+    setTimeout(() => {
+        toast.classList.remove('show');
+        setTimeout(() => toast.remove(), 300);
+    }, 2000);
 }
 
 loadPosts();
