@@ -30,6 +30,14 @@ function getAnonymousName() {
   if (!name) { name = generateRandomName(); localStorage.setItem('anonName', name); }
   return name;
 }
+function getAnonymousId() {
+  let id = localStorage.getItem('anonId');
+  if (!id) {
+    id = 'anon_' + Math.random().toString(36).substr(2, 9) + Date.now().toString(36);
+    localStorage.setItem('anonId', id);
+  }
+  return id;
+}
 function escapeHtml(text) {
   return String(text).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
@@ -166,12 +174,13 @@ function loadPosts() {
           <div class="post-actions">
             <button onclick="togglePostMenu('${postId}')" class="menu-btn">⋮</button>
             <div class="post-menu" id="menu-${postId}" style="display:none;">
-              <button onclick="sharePost('${postId}', '${escapeHtml(post.content || '')}')">Share</button>
-              ${post.nickname === getAnonymousName() ? `
-                <button onclick="editPost('${postId}')">Edit</button>
-                <button onclick="deletePost('${postId}')">Delete</button>
-              ` : ''}
-            </div>
+  <button onclick="sharePost('${postId}', '${escapeHtml(post.content || '')}')">Share</button>
+  ${post.nickname !== getAnonymousName() ? `<button onclick="reportPost('${postId}')">Report</button>` : ''}
+  ${post.nickname === getAnonymousName() ? `
+    <button onclick="editPost('${postId}')">Edit</button>
+    <button onclick="deletePost('${postId}')">Delete</button>
+  ` : ''}
+</div>
           </div>
         </div>
         <div class="post-content">${post.content ? escapeHtml(post.content) : ''}</div>
@@ -667,6 +676,60 @@ function filterPosts() {
         const text = post.dataset.searchText || '';
         post.style.display = (term === '' || text.includes(term)) ? '' : 'none';
     });
+}
+
+async function reportPost(postId) {
+  const anonId = getAnonymousId();
+  const reportsRef = db.collection("posts").doc(postId).collection("reports");
+  
+  // 1️⃣ Check already reported by this user (Firestore)
+  try {
+    const existing = await reportsRef.where("anonId", "==", anonId).get();
+    if (!existing.empty) {
+      showToast('⚠️ You already reported this post');
+      return;
+    }
+  } catch(e) { console.error(e); return; }
+
+  // 2️⃣ Add report
+  try {
+    await reportsRef.add({
+      anonId,
+      timestamp: firebase.firestore.FieldValue.serverTimestamp()
+    });
+    showToast('🚩 Post reported');
+
+    // 3️⃣ Check total distinct reports
+    const allReports = await reportsRef.get();
+    const distinctIds = new Set();
+    allReports.forEach(doc => distinctIds.add(doc.data().anonId));
+    
+    if (distinctIds.size >= 3) {
+      // Delete the post automatically
+      await deletePostInternal(postId);
+      showToast('🗑️ Post removed due to reports');
+    }
+  } catch(e) {
+    console.error(e);
+    showToast('Report failed');
+  }
+}
+
+async function deletePostInternal(postId) {
+  try {
+    const commentsRef = db.collection("posts").doc(postId).collection("comments");
+    const commentSnap = await commentsRef.get();
+    const batch = db.batch();
+    commentSnap.forEach(doc => batch.delete(doc.ref));
+    // Delete reports subcollection as well
+    const reportsRef = db.collection("posts").doc(postId).collection("reports");
+    const reportSnap = await reportsRef.get();
+    reportSnap.forEach(doc => batch.delete(doc.ref));
+    await batch.commit();
+    await db.collection("posts").doc(postId).delete();
+  } catch(e) {
+    console.error("Auto delete failed:", e);
+  }
 }
 
 loadPosts();
