@@ -66,28 +66,41 @@ async function uploadImage(file) {
 
 // ---- Post Functions ----
 async function createPost() {
+  const btn = document.getElementById('postButton');
+  
+  // Cooldown check (if cooldown active, ignore and don't mess with button state)
   if (isCooldownActive()) {
     showToast('Please wait 30 seconds between posts');
     return;
   }
+
   const nickname = getAnonymousName();
   const content = document.getElementById('postContent').value.trim();
   
+  // Validate
   if (!content && selectedFiles.length === 0) {
-    return showToast('Text or image required');
+    showToast('Text or image required');
+    return;
   }
 
-  // 🔞 NSFW Check (MUST be before any upload)
+  // --- Start loading state ---
+  btn.disabled = true;
+  btn.textContent = 'Posting...';
+
+  // 🔞 NSFW Check (Sightengine)
   if (selectedFiles.length > 0) {
     for (let file of selectedFiles) {
       const isNsfw = await checkImageNSFW(file);
       if (isNsfw) {
         showToast('🔞 NSFW image detected! Post rejected.');
-        return; // Stop entire post
+        btn.disabled = false;
+        btn.textContent = 'Post කරන්න';
+        return;
       }
     }
   }
 
+  // Upload images
   let imageUrls = [];
   if (selectedFiles.length > 0) {
     try {
@@ -97,10 +110,13 @@ async function createPost() {
       }
     } catch (e) {
       showToast('Image upload fail');
+      btn.disabled = false;
+      btn.textContent = 'Post කරන්න';
       return;
     }
   }
 
+  // Save to Firestore
   try {
     await db.collection("posts").add({
       nickname,
@@ -110,13 +126,20 @@ async function createPost() {
       timestamp: firebase.firestore.FieldValue.serverTimestamp(),
       reactions: { like:0, love:0, haha:0, wow:0, sad:0, angry:0 }
     });
+    
+    // Success – start cooldown (will disable button with countdown)
     startCooldown(30000);
+    
+    // Reset form
     document.getElementById('postContent').value = '';
     selectedFiles.length = 0;
     renderPreviews();
+    
   } catch (e) {
     console.error('Post fail:', e);
     showToast('Posting failed');
+    btn.disabled = false;
+    btn.textContent = 'Post කරන්න';
   }
 }
 
