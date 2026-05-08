@@ -732,4 +732,72 @@ async function deletePostInternal(postId) {
   }
 }
 
+// ----- Anonymous Unique ID (Report tracking) -----
+function getAnonymousId() {
+  let id = localStorage.getItem('anonId');
+  if (!id) {
+    id = 'anon_' + Math.random().toString(36).substr(2, 9) + Date.now().toString(36);
+    localStorage.setItem('anonId', id);
+  }
+  return id;
+}
+
+// ----- Report Post -----
+async function reportPost(postId) {
+  const anonId = getAnonymousId();
+  const reportsRef = db.collection("posts").doc(postId).collection("reports");
+  
+  try {
+    // Check already reported
+    const existing = await reportsRef.where("anonId", "==", anonId).get();
+    if (!existing.empty) {
+      showToast('⚠️ You already reported this post');
+      return;
+    }
+  } catch(e) {
+    console.error(e);
+    showToast('Report check failed');
+    return;
+  }
+
+  try {
+    await reportsRef.add({
+      anonId,
+      timestamp: firebase.firestore.FieldValue.serverTimestamp()
+    });
+    showToast('🚩 Post reported');
+
+    // Check total distinct reporters
+    const allReports = await reportsRef.get();
+    const distinctIds = new Set();
+    allReports.forEach(doc => distinctIds.add(doc.data().anonId));
+    
+    if (distinctIds.size >= 3) {
+      await deletePostInternal(postId);
+      showToast('🗑️ Post removed due to reports');
+    }
+  } catch(e) {
+    console.error(e);
+    showToast('Report failed');
+  }
+}
+
+// ----- Internal Delete (no confirm) -----
+async function deletePostInternal(postId) {
+  try {
+    const commentsRef = db.collection("posts").doc(postId).collection("comments");
+    const commentSnap = await commentsRef.get();
+    const batch = db.batch();
+    commentSnap.forEach(doc => batch.delete(doc.ref));
+    // also delete reports subcollection
+    const reportsRef = db.collection("posts").doc(postId).collection("reports");
+    const reportSnap = await reportsRef.get();
+    reportSnap.forEach(doc => batch.delete(doc.ref));
+    await batch.commit();
+    await db.collection("posts").doc(postId).delete();
+  } catch(e) {
+    console.error("Auto delete failed:", e);
+  }
+}
+
 loadPosts();
