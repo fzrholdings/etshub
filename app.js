@@ -77,6 +77,28 @@ async function createPost() {
     return showToast('Text or image required');
   }
 
+  // 🔞 NSFW Check – must happen before uploading
+  if (selectedFiles.length > 0) {
+    const model = await getNsfwModel();
+    if (model) {
+      for (let file of selectedFiles) {
+        try {
+          const img = await createImageBitmap(file);
+          const predictions = await model.classify(img);
+          const nsfwScore = predictions
+            .filter(p => ['Porn', 'Hentai', 'Sexy'].includes(p.className))
+            .reduce((sum, p) => sum + p.probability, 0);
+          if (nsfwScore > 0.6) {
+            showToast('🔞 NSFW image detected! Post rejected.');
+            return; // Stop the post
+          }
+        } catch (e) {
+          console.warn('NSFW check failed for image, skipping:', e);
+        }
+      }
+    }
+  }
+
   let imageUrls = [];
   
   if (selectedFiles.length > 0) {
@@ -109,29 +131,6 @@ async function createPost() {
     showToast('Posting failed');
   }
 }
-
-    // NSFW Check for each selected image
-    if (selectedFiles.length > 0) {
-        const model = await getNsfwModel();
-        if (model) {
-            for (let file of selectedFiles) {
-                try {
-                    const img = await createImageBitmap(file);
-                    const predictions = await model.classify(img);
-                    const nsfwScore = predictions
-                        .filter(p => ['Porn', 'Hentai', 'Sexy'].includes(p.className))
-                        .reduce((sum, p) => sum + p.probability, 0);
-                    if (nsfwScore > 0.6) { // Threshold 60%
-                        showToast('🔞 NSFW image detected! Post rejected.');
-                        return; // Stop the post
-                    }
-                } catch (e) {
-                    console.warn('NSFW check failed for image:', e);
-                    // Continue anyway
-                }
-            }
-        }
-    }
 
 // ---------- Post Cooldown (30s) ----------
 function getCooldownExpireTime() {
