@@ -77,19 +77,18 @@ async function createPost() {
     return showToast('Text or image required');
   }
 
-  // 🔞 NSFW Check using Sightengine
+  // 🔞 NSFW Check (MUST be before any upload)
   if (selectedFiles.length > 0) {
     for (let file of selectedFiles) {
       const isNsfw = await checkImageNSFW(file);
       if (isNsfw) {
         showToast('🔞 NSFW image detected! Post rejected.');
-        return; // Stop the post
+        return; // Stop entire post
       }
     }
   }
 
   let imageUrls = [];
-  
   if (selectedFiles.length > 0) {
     try {
       for (let file of selectedFiles) {
@@ -632,29 +631,31 @@ const SIGHTENGINE_API_SECRET = "598QXkS4TcXXbfKTfDVMKxRomCbTomvr";
 
 async function checkImageNSFW(file) {
   const formData = new FormData();
-  formData.append('api_user', SIGHTENGINE_API_USER);
-  formData.append('api_secret', SIGHTENGINE_API_SECRET);
-  formData.append('models', 'nudity-2.0'); // Only nudity model (saves operations)
+  formData.append('api_user', '1778458502');
+  formData.append('api_secret', '598QXkS4TcXXbfKTfDVMKxRomCbTomvr');
+  formData.append('models', 'nudity'); // classic nudity model (free)
   formData.append('image', file);
 
   try {
+    console.log('Sightengine: Sending check...');
     const response = await fetch('https://api.sightengine.com/1.0/check.json', {
       method: 'POST',
       body: formData
     });
     const result = await response.json();
+    console.log('Sightengine result:', result);
     
-    // Check nudity probabilities
     if (result.nudity) {
       const { sexual_activity, sexual_display, erotica } = result.nudity;
+      console.log('Scores:', { sexual_activity, sexual_display, erotica });
       if (sexual_activity > 0.6 || sexual_display > 0.6 || erotica > 0.6) {
         return true; // NSFW
       }
     }
-    return false; // Safe
+    return false;
   } catch (e) {
-    console.warn('Sightengine check failed, allowing post:', e);
-    return false; // Fail open
+    console.error('Sightengine API call failed:', e);
+    return false; // Fail open (allow post)
   }
 }
 
