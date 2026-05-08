@@ -103,23 +103,10 @@ function loadPosts() {
       const btnText = userReactType ? userReactType.charAt(0).toUpperCase()+userReactType.slice(1) : (totalReactions>0?top.charAt(0).toUpperCase()+top.slice(1):'Like');
       const countStr = totalReactions>0?' · '+totalReactions:'';
 
-              // --- Deep Link Highlight & Scroll ---
-        if (snapshot.size > 0) {
-            const hash = window.location.hash;
-            if (hash && hash.startsWith('#post-')) {
-                const targetId = hash.replace('#post-', '');
-                const targetPost = document.getElementById('post-' + targetId);
-                if (targetPost) {
-                    targetPost.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                    targetPost.classList.add('highlight');
-                    setTimeout(() => targetPost.classList.remove('highlight'), 2500);
-                }
-            }
-        }
-
-      // මෙතන duplicate නැති බව තහවුරු කරන්න
+      // Create post div
       const div = document.createElement('div');
       div.className = 'post';
+      div.id = 'post-' + postId;
       div.setAttribute('data-post-id', postId);
       div.innerHTML = `
         <div class="post-header">
@@ -165,19 +152,21 @@ function loadPosts() {
       `;
       container.appendChild(div);
       loadComments(postId);
-      // ... after forEach loop ends, and after container finished:
-// Scroll to deep link if any
-const hash = window.location.hash;
-if (hash && hash.startsWith('#post-')) {
-    const targetId = hash.replace('#post-', '');
-    const targetPost = document.getElementById('post-' + targetId);
-    if (targetPost) {
-        targetPost.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        targetPost.classList.add('highlight');
-        setTimeout(() => targetPost.classList.remove('highlight'), 2500);
+    }); // End of forEach
+
+    // === Deep Link Highlight & Scroll (ONE TIME, after all posts rendered) ===
+    const hash = window.location.hash;
+    if (hash && hash.startsWith('#post-')) {
+        const targetId = hash.replace('#post-', '');
+        setTimeout(() => {
+            const targetPost = document.getElementById('post-' + targetId);
+            if (targetPost) {
+                targetPost.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                targetPost.classList.add('highlight');
+                setTimeout(() => targetPost.classList.remove('highlight'), 2500);
+            }
+        }, 300);
     }
-}
-    });
   });
 }
 
