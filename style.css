@@ -996,3 +996,63 @@ body {
   letter-spacing: 5px;
   margin-top: 2px;
 }
+
+/* Rules Button & Modal */
+.rules-btn-container {
+  text-align: center;
+  margin: 10px 0;
+}
+.rules-btn {
+  font-family: 'Lato', sans-serif;
+  font-weight: 700;
+  background: #0a0a0a;
+  border: 1px solid #2a2a2a;
+  color: #ccc;
+  padding: 8px 20px;
+  border-radius: 25px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: 0.2s;
+}
+.rules-btn:hover {
+  background: #1f1f1f;
+  color: #fff;
+}
+.rules-modal-box {
+  max-width: 600px;
+  max-height: 80vh;
+  overflow-y: auto;
+  text-align: left;
+}
+.rules-heading {
+  font-family: 'Lato', sans-serif;
+  font-weight: 700;
+  font-size: 20px;
+  margin-bottom: 15px;
+  color: #fff;
+  text-align: center;
+}
+.rule-title {
+  font-family: 'Lato', sans-serif;
+  font-weight: 700;
+  color: #fff;
+  font-size: 15px;
+}
+.rules-content p {
+  font-family: 'Lato', sans-serif;
+  font-weight: 400;
+  color: #ccc;
+  font-size: 14px;
+  margin-bottom: 15px;
+  line-height: 1.6;
+}
+.close-rules-btn {
+  background: #fff;
+  color: #000;
+  padding: 8px 20px;
+  border-radius: 10px;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  margin-top: 10px;
+}
