@@ -45,12 +45,13 @@ body {
   cursor:pointer; font-size:14px; display:flex; align-items:center; gap:6px; transition: background .2s, color .2s;
 }
 .like-btn:hover { background:#1f1f1f; color:#fff; }
-.reaction-picker {
-  position:absolute; bottom:110%; left:0; display:flex; gap:6px;
-  background:#0a0a0a; border:1px solid #2a2a2a; border-radius:24px; padding:8px 12px;
-  box-shadow:0 8px 20px rgba(0,0,0,0.8); opacity:0; transform:scale(0.6) translateY(10px);
-  pointer-events:none; transition: opacity .25s cubic-bezier(0,0,0.2,1), transform .25s cubic-bezier(0,0,0.2,1);
-  z-index:10; white-space:nowrap;
+/* Desktop hover only */
+@media (hover: hover) {
+  .reaction-wrapper:hover .reaction-picker {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+    pointer-events: auto;
+  }
 }
 .reaction-wrapper:hover .reaction-picker { opacity:1; transform:scale(1) translateY(0); pointer-events:auto; }
 .reaction-option {
@@ -1184,7 +1185,14 @@ body {
   display:flex; gap:4px; background:#0a0a0a; border:1px solid #2a2a2a; border-radius:16px; padding:4px 8px;
   opacity:0; pointer-events:none; transition: opacity .15s, transform .15s; z-index:30; white-space:nowrap;
 }
-.cm-reaction-wrapper:hover .cm-reaction-picker { opacity:1; transform:translateX(-50%) scale(1) translateY(0); pointer-events:auto; transition-delay:0.1s; }
+/* Desktop hover only */
+@media (hover: hover) {
+  .cm-reaction-wrapper:hover .cm-reaction-picker {
+    opacity: 1;
+    transform: translateX(-50%) scale(1) translateY(0);
+    pointer-events: auto;
+  }
+}
 .cm-reaction-wrapper:not(:hover) .cm-reaction-picker { transition-delay:0.15s; }
 
 /* Unified Send Buttons (Post button style) */
@@ -2182,4 +2190,12 @@ body {
 #shareLinkInput {
   font-size: 14px;
   outline: none;
+}
+
+/* Toggle picker via class (mobile & desktop) */
+.reaction-picker.show,
+.cm-reaction-picker.show {
+  opacity: 1 !important;
+  pointer-events: auto !important;
+  transform: scale(1) translateY(0) !important;
 }
