@@ -600,29 +600,20 @@ function showToast(msg) {
 
 function sharePost(postId, text) {
   const postUrl = window.location.href.split('#')[0] + '#post-' + postId;
-  if (navigator.share) {
-    navigator.share({ title:'ETSCFM Community Hub', text: text||'Check this post!', url: postUrl }).catch(()=>{});
-  } else {
-    navigator.clipboard.writeText(postUrl).then(() => {
-      showToast('📋 Post link copied!');
-    }).catch(() => {
-      // fallback for iframe / older browsers
-      const textarea = document.createElement('textarea');
-      textarea.value = postUrl;
-      textarea.style.position = 'fixed';
-      textarea.style.left = '-9999px';
-      document.body.appendChild(textarea);
-      textarea.focus();
-      textarea.select();
-      try {
-        document.execCommand('copy');
-        showToast('📋 Post link copied!');
-      } catch (err) {
-        prompt('Copy link manually:', postUrl);
-      }
-      document.body.removeChild(textarea);
-    });
-  }
+  document.getElementById('shareLinkInput').value = postUrl;
+  document.getElementById('shareModal').style.display = 'flex';
+}
+
+function closeShareModal() {
+  document.getElementById('shareModal').style.display = 'none';
+}
+
+function copyShareLink() {
+  const input = document.getElementById('shareLinkInput');
+  input.select();
+  document.execCommand('copy');
+  showToast('📋 Link copied!');
+  closeShareModal();
 }
 
 async function editPost(postId) {
