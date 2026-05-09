@@ -2159,3 +2159,9 @@ body {
   font-size: 11px;
   margin-left: 1px;
 }
+
+/* Share Modal */
+#shareLinkInput {
+  font-size: 14px;
+  outline: none;
+}
