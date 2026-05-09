@@ -283,10 +283,10 @@ function loadPosts() {
             </span>
             ${totalReactions > 0 ? `<span class="reaction-count">${totalReactions}</span>` : ''}
           </button>
-          <div class="reaction-picker" id="picker-${postId}" data-post-id="${postId}">
+          <div class="reaction-picker" id="picker-${postId}">
   ${reactionTypes.map(t => {
     const count = post.reactions?.[t] || 0;
-    return `<button class="reaction-option" data-reaction-type="${t}">${emojiMap[t]}${count > 0 ? `<small>${count}</small>` : ''}</button>`;
+    return `<button class="reaction-option" onclick="event.stopPropagation(); reactPost('${postId}','${t}'); document.getElementById('picker-${postId}').classList.remove('show')">${emojiMap[t]}${count>0?`<small>${count}</small>`:''}</button>`;
   }).join('')}
 </div>
         </div>
@@ -404,10 +404,10 @@ function renderCommentNode(postId, node, depth, container) {
           </span>
           ${totalReactions > 0 ? `<span class="reaction-count">${totalReactions}</span>` : ''}
         </button>
-        <div class="cm-reaction-picker" id="cpicker-${commentId}" data-comment-id="${commentId}" data-post-id="${postId}">
+        <div class="cm-reaction-picker" id="cpicker-${commentId}">
   ${reactionTypes.map(t => {
     const count = node.reactions?.[t] || 0;
-    return `<button class="reaction-option" data-reaction-type="${t}">${emojiMap[t]}${count > 0 ? `<small>${count}</small>` : ''}</button>`;
+    return `<button class="reaction-option" onclick="event.stopPropagation(); reactComment('${postId}','${commentId}','${t}'); document.getElementById('cpicker-${commentId}').classList.remove('show')">${emojiMap[t]}${count>0?`<small>${count}</small>`:''}</button>`;
   }).join('')}
 </div>
       </div>
@@ -1476,27 +1476,3 @@ checkAdminPanel();
     loadConvoys();
   }
 })();
-
-// Universal reaction handler (click delegation)
-document.addEventListener('click', (e) => {
-  const option = e.target.closest('.reaction-option');
-  if (!option) return;
-
-  const type = option.getAttribute('data-reaction-type');
-  const picker = option.closest('.reaction-picker, .cm-reaction-picker');
-  if (!picker) return;
-
-  const postId = picker.getAttribute('data-post-id');
-  const commentId = picker.getAttribute('data-comment-id');
-
-  if (commentId) {
-    // Comment reaction
-    reactComment(postId, commentId, type);
-  } else {
-    // Post reaction
-    reactPost(postId, type);
-  }
-
-  // Close the picker
-  picker.classList.remove('show');
-});
