@@ -283,14 +283,17 @@ function loadPosts() {
             </span>
             ${totalReactions > 0 ? `<span class="reaction-count">${totalReactions}</span>` : ''}
           </button>
-          <div class="reaction-picker">
-            ${reactionTypes.map(t => {
-              const count = post.reactions?.[t] || 0;
-              return `<button class="reaction-option" onclick="event.stopPropagation(); reactPost('${postId}','${t}')" title="${t.charAt(0).toUpperCase()+t.slice(1)}">
-                ${emojiMap[t]}${count > 0 ? `<small>${count}</small>` : ''}
-              </button>`;
-            }).join('')}
-          </div>
+          <div class="reaction-wrapper">
+  <button class="like-btn ${userReactType ? 'reacted' : ''}" onclick="event.stopPropagation(); toggleReactionPicker(this, 'picker-${postId}')">
+    ...
+  </button>
+  <div class="reaction-picker" id="picker-${postId}">
+    ${reactionTypes.map(t => { 
+      const count = post.reactions?.[t] || 0;
+      return `<button class="reaction-option" onclick="event.stopPropagation(); reactPost('${postId}','${t}'); closeReactionPicker(document.getElementById('picker-${postId}'))">${emojiMap[t]}${count > 0 ? `<small>${count}</small>` : ''}</button>`;
+    }).join('')}
+  </div>
+</div>
         </div>
         <button class="comment-toggle-btn" onclick="toggleCommentBox('${postId}')">💬 Comment</button>
         <div class="comments" id="comments-${postId}" style="display:none;">
@@ -396,26 +399,16 @@ function renderCommentNode(postId, node, depth, container) {
     <div class="comment-body">
       <strong>${escapeHtml(node.nickname||'Anon')}:</strong> <span class="comment-text">${linkifyText(filterBadWords(escapeHtml(node.text)))}</span>
       <div class="cm-reaction-wrapper">
-        <button class="cm-like-btn ${userReactType ? 'reacted' : ''}">
-          <span class="reaction-icon">
-            ${userReactType 
-              ? emojiMap[userReactType] 
-              : (totalReactions > 0 
-                  ? emojiMap[top] 
-                  : `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3H14zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"/></svg>`)
-            }
-          </span>
-          ${totalReactions > 0 ? `<span class="reaction-count">${totalReactions}</span>` : ''}
-        </button>
-        <div class="cm-reaction-picker">
-          ${reactionTypes.map(t => {
-            const count = node.reactions?.[t] || 0;
-            return `<button class="reaction-option" onclick="event.stopPropagation(); reactComment('${postId}','${commentId}','${t}')" title="${t.charAt(0).toUpperCase()+t.slice(1)}">
-              ${emojiMap[t]}${count > 0 ? `<small>${count}</small>` : ''}
-            </button>`;
-          }).join('')}
-        </div>
-      </div>
+  <button class="cm-like-btn ${userReactType ? 'reacted' : ''}" onclick="event.stopPropagation(); toggleReactionPicker(this, 'cpicker-${commentId}')">
+    ...
+  </button>
+  <div class="cm-reaction-picker" id="cpicker-${commentId}">
+    ${reactionTypes.map(t => { 
+      const count = node.reactions?.[t] || 0;
+      return `<button class="reaction-option" onclick="event.stopPropagation(); reactComment('${postId}','${commentId}','${t}'); closeReactionPicker(document.getElementById('cpicker-${commentId}'))">${emojiMap[t]}${count > 0 ? `<small>${count}</small>` : ''}</button>`;
+    }).join('')}
+  </div>
+</div>
       <button class="reply-toggle" onclick="toggleReplyBox('${postId}','${commentId}')">Reply</button>
       
       <!-- Comment Dropdown Menu -->
@@ -1393,6 +1386,28 @@ listenOnlineCount();
 
 // Init
 loadPosts();
+// Reaction picker toggle (mobile / desktop click)
+function toggleReactionPicker(btn, pickerId) {
+  const picker = document.getElementById(pickerId);
+  if (!picker) return;
+  const isOpen = picker.classList.contains('show');
+  // Close all other pickers first
+  document.querySelectorAll('.reaction-picker.show, .cm-reaction-picker.show').forEach(p => p.classList.remove('show'));
+  if (!isOpen) picker.classList.add('show');
+}
+
+// Close reaction pickers when clicking outside
+document.addEventListener('click', (e) => {
+  if (!e.target.closest('.reaction-wrapper') && !e.target.closest('.cm-reaction-wrapper')) {
+    document.querySelectorAll('.reaction-picker.show, .cm-reaction-picker.show').forEach(p => p.classList.remove('show'));
+  }
+});
+
+// Close picker after selecting a reaction
+function closeReactionPicker(picker) {
+  if (picker) picker.classList.remove('show');
+}
+
 checkAdminPanel();
 
 // Developer only: access convoy tab via ?tab=convoys
