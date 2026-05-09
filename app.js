@@ -404,10 +404,10 @@ function renderCommentNode(postId, node, depth, container) {
           </span>
           ${totalReactions > 0 ? `<span class="reaction-count">${totalReactions}</span>` : ''}
         </button>
-        <div class="cm-reaction-picker" id="cpicker-${commentId}">
+        <div class="cm-reaction-picker" id="cpicker-${commentId}" data-post-id="${postId}" data-comment-id="${commentId}">
   ${reactionTypes.map(t => {
     const count = node.reactions?.[t] || 0;
-    return `<button class="reaction-option" onclick="event.stopPropagation(); reactComment('${postId}','${commentId}','${t}'); document.getElementById('cpicker-${commentId}').classList.remove('show')">${emojiMap[t]}${count>0?`<small>${count}</small>`:''}</button>`;
+    return `<button class="reaction-option" onclick="event.stopPropagation(); reactComment('${postId}','${commentId}','${t}'); document.getElementById('cpicker-${commentId}').classList.remove('show')">${emojiMap[t]}${count > 0 ? `<small>${count}</small>` : ''}</button>`;
   }).join('')}
 </div>
       </div>
@@ -1462,40 +1462,6 @@ document.querySelector('.rules-modal-box')?.addEventListener('click', (e) => {
   e.stopPropagation();
 });
 
-// Universal reaction picker handler (mobile + desktop embed)
-function addReactionListeners() {
-  document.addEventListener('mousedown', handleReactionOption, false);
-  document.addEventListener('touchstart', handleReactionOption, { passive: false });
-}
-
-function handleReactionOption(e) {
-  const option = e.target.closest('.reaction-option');
-  if (!option) return;
-
-  // Prevent default only if it's a touch event (stops click duplication)
-  if (e.type === 'touchstart') {
-    e.preventDefault();
-  }
-
-  const type = option.getAttribute('data-reaction-type');
-  const picker = option.closest('.reaction-picker, .cm-reaction-picker');
-  if (!picker) return;
-
-  const postId = picker.getAttribute('data-post-id');
-  const commentId = picker.getAttribute('data-comment-id');
-
-  if (commentId) {
-    reactComment(postId, commentId, type);
-  } else {
-    reactPost(postId, type);
-  }
-
-  // Close picker
-  picker.classList.remove('show');
-}
-
-// Initialize listeners
-addReactionListeners();
 
 // Init
 loadPosts();
