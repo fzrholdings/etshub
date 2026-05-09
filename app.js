@@ -726,9 +726,10 @@ async function reportPost(postId) {
   const uid = getCurrentUid();
   const reportsRef = db.collection("posts").doc(postId).collection("reports");
   // Close the menu immediately
-  const menu = document.getElementById('menu-'+postId);
+  const menu = document.getElementById('menu-' + postId);
   if (menu) menu.style.display = 'none';
   
+  // Check if already reported by this user
   try {
     const existing = await reportsRef.where("reporterUid", "==", uid).get();
     if (!existing.empty) {
@@ -741,17 +742,41 @@ async function reportPost(postId) {
     return;
   }
 
+  // Add the report
   try {
-    await reportsRef.add({ reporterUid: uid, timestamp: firebase.firestore.FieldValue.serverTimestamp() });
+    await reportsRef.add({
+      reporterUid: uid,
+      timestamp: firebase.firestore.FieldValue.serverTimestamp()
+    });
     showToast('🚩 Post reported');
+    
+    // Check total distinct reporters
     const allReports = await reportsRef.get();
     const distinctIds = new Set();
     allReports.forEach(doc => distinctIds.add(doc.data().reporterUid));
+    
     if (distinctIds.size >= 3) {
-      await deletePostInternal(postId);
-      showToast('🗑️ Post removed due to reports');
+      // Trigger secure auto‑delete via Worker endpoint
+      const formData = new FormData();
+      formData.append('secret', 'etshub_auto_del_2026!');   // Must match Worker env AUTO_DELETE_SECRET
+      formData.append('postId', postId);
+      try {
+        const res = await fetch('/api/auto-delete', { method:'POST', body: formData });
+        if (res.ok) {
+          showToast('🗑️ Post removed due to reports');
+        } else {
+          const data = await res.json();
+          console.error('Auto‑delete failed:', data);
+          showToast('Auto‑delete failed – admins notified');
+        }
+      } catch(e) {
+        console.error('Auto‑delete network error:', e);
+      }
     }
-  } catch(e) { console.error(e); showToast('Report failed'); }
+  } catch(e) {
+    console.error(e);
+    showToast('Report failed');
+  }
 }
 
 async function deletePostInternal(postId) {
