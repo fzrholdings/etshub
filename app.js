@@ -1406,9 +1406,24 @@ checkAdminPanel();
   }
 })();
 
+// Rules Modal
 function openRules() {
   document.getElementById('rulesModal').style.display = 'flex';
 }
+
 function closeRules() {
   document.getElementById('rulesModal').style.display = 'none';
 }
+
+// Close rules modal when clicking the dark overlay (outside the box)
+document.addEventListener('click', (e) => {
+  const modal = document.getElementById('rulesModal');
+  if (modal && modal.style.display === 'flex' && e.target === modal) {
+    closeRules();
+  }
+});
+
+// Prevent closing when clicking inside the modal box
+document.querySelector('.rules-modal-box')?.addEventListener('click', (e) => {
+  e.stopPropagation();
+});
