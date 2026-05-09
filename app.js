@@ -283,12 +283,12 @@ function loadPosts() {
             </span>
             ${totalReactions > 0 ? `<span class="reaction-count">${totalReactions}</span>` : ''}
           </button>
-          <div class="reaction-picker" id="picker-${postId}">
-            ${reactionTypes.map(t => { 
-              const count = post.reactions?.[t] || 0;
-              return `<button class="reaction-option" onclick="event.stopPropagation(); reactPost('${postId}','${t}'); closeReactionPicker(document.getElementById('picker-${postId}'))">${emojiMap[t]}${count > 0 ? `<small>${count}</small>` : ''}</button>`;
-            }).join('')}
-          </div>
+          <div class="reaction-picker" id="picker-${postId}" data-post-id="${postId}">
+  ${reactionTypes.map(t => {
+    const count = post.reactions?.[t] || 0;
+    return `<button class="reaction-option" data-reaction-type="${t}">${emojiMap[t]}${count > 0 ? `<small>${count}</small>` : ''}</button>`;
+  }).join('')}
+</div>
         </div>
         <button class="comment-toggle-btn" onclick="toggleCommentBox('${postId}')">💬 Comment</button>
         <div class="comments" id="comments-${postId}" style="display:none;">
@@ -404,12 +404,12 @@ function renderCommentNode(postId, node, depth, container) {
           </span>
           ${totalReactions > 0 ? `<span class="reaction-count">${totalReactions}</span>` : ''}
         </button>
-        <div class="cm-reaction-picker" id="cpicker-${commentId}">
-          ${reactionTypes.map(t => { 
-            const count = node.reactions?.[t] || 0;
-            return `<button class="reaction-option" onclick="event.stopPropagation(); reactComment('${postId}','${commentId}','${t}'); closeReactionPicker(document.getElementById('cpicker-${commentId}'))">${emojiMap[t]}${count > 0 ? `<small>${count}</small>` : ''}</button>`;
-          }).join('')}
-        </div>
+        <div class="cm-reaction-picker" id="cpicker-${commentId}" data-comment-id="${commentId}" data-post-id="${postId}">
+  ${reactionTypes.map(t => {
+    const count = node.reactions?.[t] || 0;
+    return `<button class="reaction-option" data-reaction-type="${t}">${emojiMap[t]}${count > 0 ? `<small>${count}</small>` : ''}</button>`;
+  }).join('')}
+</div>
       </div>
       <button class="reply-toggle" onclick="toggleReplyBox('${postId}','${commentId}')">Reply</button>
       
@@ -1432,19 +1432,15 @@ function toggleReactionPicker(btn, pickerId) {
   const picker = document.getElementById(pickerId);
   if (!picker) return;
   const isOpen = picker.classList.contains('show');
+  // Close all other pickers
   document.querySelectorAll('.reaction-picker.show, .cm-reaction-picker.show').forEach(p => p.classList.remove('show'));
   if (!isOpen) picker.classList.add('show');
 }
-
 document.addEventListener('click', (e) => {
   if (!e.target.closest('.reaction-wrapper') && !e.target.closest('.cm-reaction-wrapper')) {
     document.querySelectorAll('.reaction-picker.show, .cm-reaction-picker.show').forEach(p => p.classList.remove('show'));
   }
 });
-
-function closeReactionPicker(picker) {
-  if (picker) picker.classList.remove('show');
-}
 
 // ========== Rules Modal ==========
 function openRules() {
@@ -1480,3 +1476,27 @@ checkAdminPanel();
     loadConvoys();
   }
 })();
+
+// Universal reaction handler (click delegation)
+document.addEventListener('click', (e) => {
+  const option = e.target.closest('.reaction-option');
+  if (!option) return;
+
+  const type = option.getAttribute('data-reaction-type');
+  const picker = option.closest('.reaction-picker, .cm-reaction-picker');
+  if (!picker) return;
+
+  const postId = picker.getAttribute('data-post-id');
+  const commentId = picker.getAttribute('data-comment-id');
+
+  if (commentId) {
+    // Comment reaction
+    reactComment(postId, commentId, type);
+  } else {
+    // Post reaction
+    reactPost(postId, type);
+  }
+
+  // Close the picker
+  picker.classList.remove('show');
+});
