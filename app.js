@@ -1405,3 +1405,10 @@ checkAdminPanel();
     loadConvoys();
   }
 })();
+
+function openRules() {
+  document.getElementById('rulesModal').style.display = 'flex';
+}
+function closeRules() {
+  document.getElementById('rulesModal').style.display = 'none';
+}
