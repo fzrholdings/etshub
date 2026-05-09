@@ -148,7 +148,7 @@ async function createPost() {
       imageUrl: null,
       timestamp: firebase.firestore.FieldValue.serverTimestamp(),
       reactions: { like:0, love:0, haha:0, wow:0, sad:0, angry:0 },
-      ownerUid: getCurrentUid()    // <-- ownership
+      ownerUid: getCurrentUid()
     });
     
     startCooldown(30000);
@@ -272,7 +272,7 @@ function loadPosts() {
           </div>
         ` : ''}
         <div class="reaction-wrapper">
-          <button class="like-btn ${userReactType ? 'reacted' : ''}">
+          <button class="like-btn ${userReactType ? 'reacted' : ''}" onclick="event.stopPropagation(); toggleReactionPicker(this, 'picker-${postId}')">
             <span class="reaction-icon">
               ${userReactType 
                 ? emojiMap[userReactType] 
@@ -283,17 +283,12 @@ function loadPosts() {
             </span>
             ${totalReactions > 0 ? `<span class="reaction-count">${totalReactions}</span>` : ''}
           </button>
-          <div class="reaction-wrapper">
-  <button class="like-btn ${userReactType ? 'reacted' : ''}" onclick="event.stopPropagation(); toggleReactionPicker(this, 'picker-${postId}')">
-    ...
-  </button>
-  <div class="reaction-picker" id="picker-${postId}">
-    ${reactionTypes.map(t => { 
-      const count = post.reactions?.[t] || 0;
-      return `<button class="reaction-option" onclick="event.stopPropagation(); reactPost('${postId}','${t}'); closeReactionPicker(document.getElementById('picker-${postId}'))">${emojiMap[t]}${count > 0 ? `<small>${count}</small>` : ''}</button>`;
-    }).join('')}
-  </div>
-</div>
+          <div class="reaction-picker" id="picker-${postId}">
+            ${reactionTypes.map(t => { 
+              const count = post.reactions?.[t] || 0;
+              return `<button class="reaction-option" onclick="event.stopPropagation(); reactPost('${postId}','${t}'); closeReactionPicker(document.getElementById('picker-${postId}'))">${emojiMap[t]}${count > 0 ? `<small>${count}</small>` : ''}</button>`;
+            }).join('')}
+          </div>
         </div>
         <button class="comment-toggle-btn" onclick="toggleCommentBox('${postId}')">💬 Comment</button>
         <div class="comments" id="comments-${postId}" style="display:none;">
@@ -310,7 +305,6 @@ function loadPosts() {
       loadComments(postId);
     });
 
-    // Deep link highlight & scroll
     const hash = window.location.hash;
     if (hash && hash.startsWith('#post-')) {
       const targetId = hash.replace('#post-', '');
@@ -399,16 +393,24 @@ function renderCommentNode(postId, node, depth, container) {
     <div class="comment-body">
       <strong>${escapeHtml(node.nickname||'Anon')}:</strong> <span class="comment-text">${linkifyText(filterBadWords(escapeHtml(node.text)))}</span>
       <div class="cm-reaction-wrapper">
-  <button class="cm-like-btn ${userReactType ? 'reacted' : ''}" onclick="event.stopPropagation(); toggleReactionPicker(this, 'cpicker-${commentId}')">
-    ...
-  </button>
-  <div class="cm-reaction-picker" id="cpicker-${commentId}">
-    ${reactionTypes.map(t => { 
-      const count = node.reactions?.[t] || 0;
-      return `<button class="reaction-option" onclick="event.stopPropagation(); reactComment('${postId}','${commentId}','${t}'); closeReactionPicker(document.getElementById('cpicker-${commentId}'))">${emojiMap[t]}${count > 0 ? `<small>${count}</small>` : ''}</button>`;
-    }).join('')}
-  </div>
-</div>
+        <button class="cm-like-btn ${userReactType ? 'reacted' : ''}" onclick="event.stopPropagation(); toggleReactionPicker(this, 'cpicker-${commentId}')">
+          <span class="reaction-icon">
+            ${userReactType 
+              ? emojiMap[userReactType] 
+              : (totalReactions > 0 
+                  ? emojiMap[top] 
+                  : `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3H14zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"/></svg>`)
+            }
+          </span>
+          ${totalReactions > 0 ? `<span class="reaction-count">${totalReactions}</span>` : ''}
+        </button>
+        <div class="cm-reaction-picker" id="cpicker-${commentId}">
+          ${reactionTypes.map(t => { 
+            const count = node.reactions?.[t] || 0;
+            return `<button class="reaction-option" onclick="event.stopPropagation(); reactComment('${postId}','${commentId}','${t}'); closeReactionPicker(document.getElementById('cpicker-${commentId}'))">${emojiMap[t]}${count > 0 ? `<small>${count}</small>` : ''}</button>`;
+          }).join('')}
+        </div>
+      </div>
       <button class="reply-toggle" onclick="toggleReplyBox('${postId}','${commentId}')">Reply</button>
       
       <!-- Comment Dropdown Menu -->
@@ -599,7 +601,7 @@ function showToast(msg) {
 function sharePost(postId, text) {
   const postUrl = window.location.href.split('#')[0] + '#post-' + postId;
   if (navigator.share) {
-    navigator.share({ title:'ETS Ceylon FM Hub', text: text||'Check this post!', url: postUrl }).catch(()=>{});
+    navigator.share({ title:'ETSCFM Community Hub', text: text||'Check this post!', url: postUrl }).catch(()=>{});
   } else {
     navigator.clipboard.writeText(postUrl).then(() => showToast('📋 Post link copied!')).catch(() => showToast('Copy failed'));
   }
@@ -710,14 +712,25 @@ function filterPosts() {
   });
 }
 
-// Report System (using ownerUid)
+// Report System (with menu close)
 async function reportPost(postId) {
   const uid = getCurrentUid();
   const reportsRef = db.collection("posts").doc(postId).collection("reports");
+  // Close the menu immediately
+  const menu = document.getElementById('menu-'+postId);
+  if (menu) menu.style.display = 'none';
+  
   try {
     const existing = await reportsRef.where("reporterUid", "==", uid).get();
-    if (!existing.empty) { showToast('⚠️ You already reported this post'); return; }
-  } catch(e) { console.error(e); showToast('Report check failed'); return; }
+    if (!existing.empty) {
+      showToast('⚠️ You already reported this post');
+      return;
+    }
+  } catch(e) {
+    console.error(e);
+    showToast('Report check failed');
+    return;
+  }
 
   try {
     await reportsRef.add({ reporterUid: uid, timestamp: firebase.firestore.FieldValue.serverTimestamp() });
@@ -928,7 +941,6 @@ async function checkUrlNSFW(urlStr) {
 }
 
 // ========== Advanced Convoy Planner ==========
-// (Convoy functions unchanged except for using getCurrentUid() in toggleJoinConvoy)
 let allConvoysData = [];
 
 function switchTab(tabName) {
@@ -1251,9 +1263,6 @@ async function promptAdminPassword() {
   }
 }
 
-// Note: admin delete functions now may fail due to Firestore rules.
-// They will be effective only if rules allow delete for anyone.
-// For now, keep them until Worker admin endpoint is implemented.
 async function adminDeletePost(postId) {
   if (!confirm('Admin: permanently delete this post?')) return;
   await deletePostInternal(postId);
@@ -1384,30 +1393,47 @@ function listenOnlineCount() {
 }
 listenOnlineCount();
 
-// Init
-loadPosts();
-// Reaction picker toggle (mobile / desktop click)
+// ========== Reaction Picker Toggle (Mobile + Desktop) ==========
 function toggleReactionPicker(btn, pickerId) {
   const picker = document.getElementById(pickerId);
   if (!picker) return;
   const isOpen = picker.classList.contains('show');
-  // Close all other pickers first
   document.querySelectorAll('.reaction-picker.show, .cm-reaction-picker.show').forEach(p => p.classList.remove('show'));
   if (!isOpen) picker.classList.add('show');
 }
 
-// Close reaction pickers when clicking outside
 document.addEventListener('click', (e) => {
   if (!e.target.closest('.reaction-wrapper') && !e.target.closest('.cm-reaction-wrapper')) {
     document.querySelectorAll('.reaction-picker.show, .cm-reaction-picker.show').forEach(p => p.classList.remove('show'));
   }
 });
 
-// Close picker after selecting a reaction
 function closeReactionPicker(picker) {
   if (picker) picker.classList.remove('show');
 }
 
+// ========== Rules Modal ==========
+function openRules() {
+  document.getElementById('rulesModal').style.display = 'flex';
+}
+
+function closeRules() {
+  document.getElementById('rulesModal').style.display = 'none';
+}
+
+document.addEventListener('click', (e) => {
+  const modal = document.getElementById('rulesModal');
+  if (modal && modal.style.display === 'flex' && e.target === modal) {
+    closeRules();
+  }
+});
+
+document.querySelector('.rules-modal-box')?.addEventListener('click', (e) => {
+  e.stopPropagation();
+});
+
+// Init
+loadPosts();
 checkAdminPanel();
 
 // Developer only: access convoy tab via ?tab=convoys
@@ -1420,25 +1446,3 @@ checkAdminPanel();
     loadConvoys();
   }
 })();
-
-// Rules Modal
-function openRules() {
-  document.getElementById('rulesModal').style.display = 'flex';
-}
-
-function closeRules() {
-  document.getElementById('rulesModal').style.display = 'none';
-}
-
-// Close rules modal when clicking the dark overlay (outside the box)
-document.addEventListener('click', (e) => {
-  const modal = document.getElementById('rulesModal');
-  if (modal && modal.style.display === 'flex' && e.target === modal) {
-    closeRules();
-  }
-});
-
-// Prevent closing when clicking inside the modal box
-document.querySelector('.rules-modal-box')?.addEventListener('click', (e) => {
-  e.stopPropagation();
-});
