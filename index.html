@@ -12,6 +12,25 @@
     <span class="header-etscfm">ETSCFM</span>
     <span class="header-community">COMMUNITY HUB</span>
 </div>
+        <!-- Rules Button -->
+<div class="rules-btn-container">
+  <button class="rules-btn" onclick="openRules()">📜 Community Rules</button>
+</div>
+
+<!-- Rules Modal -->
+<div id="rulesModal" class="modal-overlay" style="display:none;">
+  <div class="modal-box rules-modal-box">
+    <h2 class="rules-heading">ETSCFM Community Rules & Guidelines</h2>
+    <div class="rules-content">
+      <p><span class="rule-title">🚫 No NSFW or Inappropriate Content</span><br>Our AI Shield scans all uploaded images. Posting nudity, sexual content, or any inappropriate media is strictly prohibited. Such posts will be automatically blocked, and repeat offenders will face a permanent ban.</p>
+      <p><span class="rule-title">🤝 Respect the Community</span><br>This is a professional space. Harassment, bullying, or the use of offensive language against any member will not be tolerated. Keep the conversation constructive and friendly.</p>
+      <p><span class="rule-title">🧹 No Spamming</span><br>Avoid posting the same content multiple times. Unauthorized advertisements or repetitive "junk" posts will be removed to keep the feed clean.</p>
+      <p><span class="rule-title">📸 Quality Over Quantity</span><br>Share your creative work, meaningful updates, and relevant thoughts. Help us maintain a high-standard community by avoiding low-effort or irrelevant posts.</p>
+      <p><span class="rule-title">🚩 See Something? Report It.</span><br>If you spot a post that violates these rules, please use the REPORT button. Once a post receives 3 reports, it will be automatically hidden for review.</p>
+    </div>
+    <button class="modal-btn close-rules-btn" onclick="closeRules()">Close</button>
+  </div>
+</div>
         <!-- Tab Navigation -->
          <!-- <div class="tab-bar">
             <!-- <button class="tab-btn active" onclick="switchTab('wall')">📝 Wall</button>
