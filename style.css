@@ -1056,3 +1056,9 @@ body {
   border: none;
   margin-top: 10px;
 }
+
+.reaction-picker.show, .cm-reaction-picker.show {
+  opacity: 1 !important;
+  pointer-events: auto !important;
+  transform: scale(1) translateY(0) !important;
+}
